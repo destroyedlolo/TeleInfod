@@ -4,7 +4,8 @@
  *
  * 	Compilation
  *
-gcc -std=c99 -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
+ * if using MOSQUITTO (not anymore supported)
+gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
  *
  * Copyright 2015 Laurent Faillie
  *
@@ -34,14 +35,16 @@ gcc -std=c99 -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
 #include <unistd.h>
 #include <pthread.h>
 
+#ifdef USE_MOSQUITTO
 #include <mosquitto.h>
+#endif
 
 #define VERSION "0.1"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
 
-bool debug = 0;
+int debug = 0;
 
 	/*
 	 * Helpers
@@ -106,7 +109,9 @@ struct Config {
 	const char *Broker_Host;
 	int Broker_Port;
 	int delay;
+#ifdef USE_MOSQUITTO
 	struct mosquitto *mosq;
+#endif
 } cfg;
 
 void read_configuration( const char *fch){
@@ -118,7 +123,9 @@ void read_configuration( const char *fch){
 	cfg.Broker_Host = "localhost";
 	cfg.Broker_Port = 1883;
 	cfg.delay = 30;
+#ifdef USE_MOSQUITTO
 	cfg.mosq = NULL;
+#endif
 
 	if(debug)
 		printf("Reading configuration file '%s'\n", fch);
@@ -221,24 +228,32 @@ void *process_flow(void *actx){
 				if(debug)
 					printf("Power : '%d'\n", ctx->PAPP);
 				sprintf(l, "%s/PAPP", ctx->topic);
+#ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->PAPP), &(ctx->PAPP), 0, false);
+#endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->IINST = atoi(extr_arg(arg,3));
 				if(debug)
 					printf("Intensity : '%d'\n", ctx->IINST);
 				sprintf(l, "%s/IINST", ctx->topic);
+#ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->IINST), &(ctx->IINST), 0, false);
+#endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->HCHC != v){
 					int diff = v - ctx->HCHC;
 					sprintf(l, "%s/HCHC", ctx->topic);
+#ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#endif
 					if(ctx->HCHC){	/* forget the 1st run */
 						if(debug)
 							printf("Cnt HC : '%d'\n", diff);
 						sprintf(l, "%s/HCHCd", ctx->topic);
+#ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#endif
 					}
 					ctx->HCHC = v;
 				}
@@ -247,12 +262,16 @@ void *process_flow(void *actx){
 				if(ctx->HCHP != v){
 					int diff = v - ctx->HCHP;
 					sprintf(l, "%s/HCHP", ctx->topic);
+#ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#endif
 					if(ctx->HCHP){
 						if(debug)
 							printf("Cnt HP : '%d'\n", diff);
 						sprintf(l, "%s/HCHPd", ctx->topic);
+#ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#endif
 					}
 					ctx->HCHP = v;
 				}
@@ -261,12 +280,16 @@ void *process_flow(void *actx){
 				if(ctx->BASE != v){
 					int diff = v - ctx->BASE;
 					sprintf(l, "%s/BASE", ctx->topic);
+#ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#endif
 					if(ctx->BASE){
 						if(debug)
 							printf("Cnt BASE : '%d'\n", diff);
 						sprintf(l, "%s/BASEd", ctx->topic);
+#ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#endif
 					}
 					ctx->BASE = v;
 				}
@@ -320,6 +343,7 @@ int main(int ac, char **av){
 		exit(EXIT_FAILURE);
 	}
 
+#ifdef USE_MOSQUITTO
 	mosquitto_lib_init();
 	if(!(cfg.mosq = mosquitto_new(
 		"TeleInfod",	/* Id for this client */
@@ -343,6 +367,7 @@ int main(int ac, char **av){
 		mosquitto_lib_cleanup();
 		exit(EXIT_FAILURE);
 	}
+#endif
 
 		/* Creation of reading threads */
 	assert(!pthread_attr_init (&thread_attr));
@@ -357,8 +382,10 @@ int main(int ac, char **av){
 sleep(400);
 
 		/* Some cleanup */
+#ifdef USE_MOSQUITTO
 	mosquitto_destroy(cfg.mosq);
 	mosquitto_lib_cleanup();
+#endif
 
 	exit(EXIT_SUCCESS);
 }
