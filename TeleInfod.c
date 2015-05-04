@@ -4,8 +4,11 @@
  *
  * 	Compilation
  *
- * if using MOSQUITTO (not anymore supported)
+ * if using MOSQUITTO (not any more supported but working as of v0.1 - Synchronous)
 gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
+ *
+ * if using PAHO (Asynchronous)
+gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *
  * Copyright 2015 Laurent Faillie
  *
@@ -22,7 +25,8 @@ gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfo
  * Note : I didn't find any information if the TéléInfo frame is French Only or if it's an
  * 	International norm. So, by default, I put comment in English.
  *
- *		03/05/2015 - v0.1 LF - Start of development
+ *		03/05/2015 - v0.1 LF - Start of development, using Mosquitto's own library, synchronous
+ *		04/05/2015 - v0.2 LF - Add Paho library and asynchronous calls
  */
 
 #include <stdio.h>
@@ -36,10 +40,12 @@ gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfo
 #include <pthread.h>
 
 #ifdef USE_MOSQUITTO
-#include <mosquitto.h>
+#	include <mosquitto.h>
+#elif defined(USE_PAHO)
+#	include <MQTTClient.h>
 #endif
 
-#define VERSION "0.1"
+#define VERSION "0.2"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -111,6 +117,8 @@ struct Config {
 	int delay;
 #ifdef USE_MOSQUITTO
 	struct mosquitto *mosq;
+#elif defined(USE_PAHO)
+	MQTTClient client;
 #endif
 } cfg;
 
@@ -120,8 +128,12 @@ void read_configuration( const char *fch){
 	char *arg;
 
 	cfg.sections = NULL;
+#ifdef USE_PAHO
+	cfg.Broker_Host = "tcp://localhost:1883";
+#else
 	cfg.Broker_Host = "localhost";
 	cfg.Broker_Port = 1883;
+#endif
 	cfg.delay = 30;
 #ifdef USE_MOSQUITTO
 	cfg.mosq = NULL;
@@ -160,9 +172,16 @@ void read_configuration( const char *fch){
 			if(debug)
 				printf("Broker host : '%s'\n", cfg.Broker_Host);
 		} else if((arg = striKWcmp(l,"Broker_Port="))){
+#if defined(USE_PAHO)
+			fputs("*F* When using Paho library, Broker_Port directive is not used.\n"
+				"*F* Instead, use\n"
+				"*F*\tBroker_Host=protocol://host:port\n", stderr);
+			exit(EXIT_FAILURE);
+#else
 			cfg.Broker_Port = atoi( arg );
 			if(debug)
 				printf("Broker port : %d\n", cfg.Broker_Port);
+#endif
 		} else if((arg = striKWcmp(l,"Port="))){
 			if(!cfg.sections){
 				fputs("*F* Configuration issue : Port directive outside a section\n", stderr);
@@ -185,6 +204,33 @@ void read_configuration( const char *fch){
 
 	fclose(f);
 }
+
+#ifdef USE_PAHO
+	/*
+	 * Paho's specific functions
+	 */
+int msgarrived(void *ctx, char *topic, int tlen, MQTTClient_message *msg){
+	if(debug)
+		printf("*I* Unexpected message arrival (topic : '%s')\n", topic);
+
+	MQTTClient_freeMessage(&msg);
+	MQTTClient_free(topic);
+	return 1;
+}
+
+void connlost(void *ctx, char *cause){
+	printf("*W* Broker connection lost due to %s\n", cause);
+}
+
+int papub( const char *topic, int length, void *payload ){	/* Custom wrapper to publish */
+	MQTTClient_message pubmsg = MQTTClient_message_initializer;
+	pubmsg.retained = 1;
+	pubmsg.payloadlen = length;
+	pubmsg.payload = payload;
+
+	return MQTTClient_publishMessage( cfg.client, topic, &pubmsg, NULL);
+}
+#endif
 
 	/*
 	 * Processing
@@ -230,6 +276,8 @@ void *process_flow(void *actx){
 				sprintf(l, "%s/PAPP", ctx->topic);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->PAPP), &(ctx->PAPP), 0, false);
+#elif defined(USE_PAHO)
+				papub( l, sizeof(ctx->PAPP), &(ctx->PAPP) );
 #endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->IINST = atoi(extr_arg(arg,3));
@@ -238,6 +286,8 @@ void *process_flow(void *actx){
 				sprintf(l, "%s/IINST", ctx->topic);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->IINST), &(ctx->IINST), 0, false);
+#elif defined(USE_PAHO)
+				papub( l, sizeof(ctx->IINST), &(ctx->IINST) );
 #endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
@@ -246,6 +296,8 @@ void *process_flow(void *actx){
 					sprintf(l, "%s/HCHC", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#elif defined(USE_PAHO)
+					papub( l, sizeof(v), &v );
 #endif
 					if(ctx->HCHC){	/* forget the 1st run */
 						if(debug)
@@ -253,6 +305,8 @@ void *process_flow(void *actx){
 						sprintf(l, "%s/HCHCd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#elif defined(USE_PAHO)
+						papub( l, sizeof(diff), &diff );
 #endif
 					}
 					ctx->HCHC = v;
@@ -264,6 +318,8 @@ void *process_flow(void *actx){
 					sprintf(l, "%s/HCHP", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#elif defined(USE_PAHO)
+					papub( l, sizeof(v), &v );
 #endif
 					if(ctx->HCHP){
 						if(debug)
@@ -271,6 +327,8 @@ void *process_flow(void *actx){
 						sprintf(l, "%s/HCHPd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#elif defined(USE_PAHO)
+						papub( l, sizeof(diff), &diff );
 #endif
 					}
 					ctx->HCHP = v;
@@ -282,6 +340,8 @@ void *process_flow(void *actx){
 					sprintf(l, "%s/BASE", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+#elif defined(USE_PAHO)
+					papub( l, sizeof(v), &v );
 #endif
 					if(ctx->BASE){
 						if(debug)
@@ -289,6 +349,8 @@ void *process_flow(void *actx){
 						sprintf(l, "%s/BASEd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+#elif defined(USE_PAHO)
+						papub( l, sizeof(diff), &diff );
 #endif
 					}
 					ctx->BASE = v;
@@ -367,6 +429,32 @@ int main(int ac, char **av){
 		mosquitto_lib_cleanup();
 		exit(EXIT_FAILURE);
 	}
+#elif defined(USE_PAHO)
+	{
+		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+		conn_opts.reliable = 0;
+
+		MQTTClient_create( &cfg.client, cfg.Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+		MQTTClient_setCallbacks( cfg.client, NULL, connlost, msgarrived, NULL);
+
+		switch( MQTTClient_connect( cfg.client, &conn_opts) ){
+		case MQTTCLIENT_SUCCESS : 
+			break;
+		case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
+			exit(EXIT_FAILURE);
+		case 2 : fputs("Unable to connect : Identifier rejected\n", stderr);
+			exit(EXIT_FAILURE);
+		case 3 : fputs("Unable to connect : Server unavailable\n", stderr);
+			exit(EXIT_FAILURE);
+		case 4 : fputs("Unable to connect : Bad user name or password\n", stderr);
+			exit(EXIT_FAILURE);
+		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
+			exit(EXIT_FAILURE);
+		default :
+			fputs("Unable to connect : Unknown version\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
 #endif
 
 		/* Creation of reading threads */
@@ -385,6 +473,9 @@ sleep(400);
 #ifdef USE_MOSQUITTO
 	mosquitto_destroy(cfg.mosq);
 	mosquitto_lib_cleanup();
+#elif defined(USE_PAHO)
+	MQTTClient_disconnect(cfg.client, 10000);	/* 10s for the grace period */
+	MQTTClient_destroy(&cfg.client);
 #endif
 
 	exit(EXIT_SUCCESS);
