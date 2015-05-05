@@ -4,7 +4,7 @@
  *
  * 	Compilation
  *
- * if using MOSQUITTO (not any more supported but working as of v0.1 - Synchronous)
+ * if using MOSQUITTO (working as of v0.1 - Synchronous)
 gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
  *
  * if using PAHO (Asynchronous)
@@ -27,8 +27,11 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *
  *		03/05/2015 - v0.1 LF - Start of development, using Mosquitto's own library, synchronous
  *		04/05/2015 - v0.2 LF - Add Paho library and asynchronous calls
- *		05/05/2015 - v0.3 LF - Infinit loop implemented
+ *		05/05/2015 - v0.3 LF - main infinit loop implemented
  *							- add retained option when using Paho
+ *							- live data moved to .../values/
+ *		05/05/2015 - v1.0 LF - Add sumarry
+ *							- release as v1.0
  */
 
 #include <stdio.h>
@@ -48,7 +51,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "0.3"
+#define VERSION "1.0"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -157,6 +160,7 @@ void read_configuration( const char *fch){
 		if(*l == '*'){	/* Entering in a new section */
 			struct CSection *n = malloc( sizeof(struct CSection) );
 			assert(n);
+			memset(n, 0, sizeof(struct CSection));	/* Clear all fields to help to generate the summary */ 
 			n->next = cfg.sections;
 
 			n->port = n->topic = NULL;
@@ -243,11 +247,16 @@ void *process_flow(void *actx){
 	FILE *ftrame;
 	char l[MAXLINE];
 	char *arg;
+	char *sumtopic;
 
 	if(!ctx->topic){
 		fputs("*E* configuration error : no topic specified, ignoring this section\n", stderr);
 		pthread_exit(0);
 	}
+	assert( sumtopic = malloc( strlen(ctx->topic)+9 ) );	/* + "/summary" + 1 */
+	strcpy( sumtopic, ctx->topic );
+	strcat( sumtopic, "/summary" );
+
 	if(!ctx->port){
 		fprintf(stderr, "*E* configuration error : no port specified for '%s', ignoring this section\n", ctx->topic);
 		pthread_exit(0);
@@ -365,6 +374,25 @@ void *process_flow(void *actx){
 			break;
 		}
 		fclose(ftrame);
+
+			/* publish summary */
+		sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->PAPP, ctx->IINST );
+		if(ctx->HCHC){
+			char *t = l + strlen(l);
+			sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->HCHC, ctx->HCHP);
+		}
+		if(ctx->BASE){
+			char *t = l + strlen(l);
+			sprintf(t, ",\n\"BASE\": %d", ctx->BASE);
+		}
+		strcat(l,"\n}\n");
+
+#ifdef USE_MOSQUITTO
+		mosquitto_publish(cfg.mosq, NULL, sumtopic, sizeof(l), l, 0, true);
+#elif defined(USE_PAHO)
+		papub( sumtopic, sizeof(l), l, 1 );
+#endif
+
 		sleep( cfg.delay );
 	}
 
