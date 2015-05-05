@@ -27,6 +27,8 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *
  *		03/05/2015 - v0.1 LF - Start of development, using Mosquitto's own library, synchronous
  *		04/05/2015 - v0.2 LF - Add Paho library and asynchronous calls
+ *		05/05/2015 - v0.3 LF - Infinit loop implemented
+ *							- add retained option when using Paho
  */
 
 #include <stdio.h>
@@ -38,6 +40,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
 #ifdef USE_MOSQUITTO
 #	include <mosquitto.h>
@@ -45,7 +48,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "0.2"
+#define VERSION "0.3"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -222,9 +225,9 @@ void connlost(void *ctx, char *cause){
 	printf("*W* Broker connection lost due to %s\n", cause);
 }
 
-int papub( const char *topic, int length, void *payload ){	/* Custom wrapper to publish */
+int papub( const char *topic, int length, void *payload, int retained ){	/* Custom wrapper to publish */
 	MQTTClient_message pubmsg = MQTTClient_message_initializer;
-	pubmsg.retained = 1;
+	pubmsg.retained = retained;
 	pubmsg.payloadlen = length;
 	pubmsg.payload = payload;
 
@@ -273,40 +276,40 @@ void *process_flow(void *actx){
 				ctx->PAPP = atoi(extr_arg(arg,5));
 				if(debug)
 					printf("Power : '%d'\n", ctx->PAPP);
-				sprintf(l, "%s/PAPP", ctx->topic);
+				sprintf(l, "%s/values/PAPP", ctx->topic);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->PAPP), &(ctx->PAPP), 0, false);
 #elif defined(USE_PAHO)
-				papub( l, sizeof(ctx->PAPP), &(ctx->PAPP) );
+				papub( l, sizeof(ctx->PAPP), &(ctx->PAPP), 0 );
 #endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->IINST = atoi(extr_arg(arg,3));
 				if(debug)
 					printf("Intensity : '%d'\n", ctx->IINST);
-				sprintf(l, "%s/IINST", ctx->topic);
+				sprintf(l, "%s/values/IINST", ctx->topic);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->IINST), &(ctx->IINST), 0, false);
 #elif defined(USE_PAHO)
-				papub( l, sizeof(ctx->IINST), &(ctx->IINST) );
+				papub( l, sizeof(ctx->IINST), &(ctx->IINST), 0 );
 #endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->HCHC != v){
 					int diff = v - ctx->HCHC;
-					sprintf(l, "%s/HCHC", ctx->topic);
+					sprintf(l, "%s/values/HCHC", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v );
+					papub( l, sizeof(v), &v, 0 );
 #endif
 					if(ctx->HCHC){	/* forget the 1st run */
 						if(debug)
 							printf("Cnt HC : '%d'\n", diff);
-						sprintf(l, "%s/HCHCd", ctx->topic);
+						sprintf(l, "%s/values/HCHCd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff );
+						papub( l, sizeof(diff), &diff, 0 );
 #endif
 					}
 					ctx->HCHC = v;
@@ -315,20 +318,20 @@ void *process_flow(void *actx){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->HCHP != v){
 					int diff = v - ctx->HCHP;
-					sprintf(l, "%s/HCHP", ctx->topic);
+					sprintf(l, "%s/values/HCHP", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v );
+					papub( l, sizeof(v), &v, 0 );
 #endif
 					if(ctx->HCHP){
 						if(debug)
 							printf("Cnt HP : '%d'\n", diff);
-						sprintf(l, "%s/HCHPd", ctx->topic);
+						sprintf(l, "%s/values/HCHPd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff );
+						papub( l, sizeof(diff), &diff, 0 );
 #endif
 					}
 					ctx->HCHP = v;
@@ -337,20 +340,20 @@ void *process_flow(void *actx){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->BASE != v){
 					int diff = v - ctx->BASE;
-					sprintf(l, "%s/BASE", ctx->topic);
+					sprintf(l, "%s/values/BASE", ctx->topic);
 #ifdef USE_MOSQUITTO
 					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v );
+					papub( l, sizeof(v), &v, 0 );
 #endif
 					if(ctx->BASE){
 						if(debug)
 							printf("Cnt BASE : '%d'\n", diff);
-						sprintf(l, "%s/BASEd", ctx->topic);
+						sprintf(l, "%s/values/BASEd", ctx->topic);
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff );
+						papub( l, sizeof(diff), &diff, 0 );
 #endif
 					}
 					ctx->BASE = v;
@@ -366,6 +369,21 @@ void *process_flow(void *actx){
 	}
 
 	pthread_exit(0);
+}
+
+void handleInt(int na){
+	exit(EXIT_SUCCESS);
+}
+
+void theend(void){
+		/* Some cleanup */
+#ifdef USE_MOSQUITTO
+	mosquitto_destroy(cfg.mosq);
+	mosquitto_lib_cleanup();
+#elif defined(USE_PAHO)
+	MQTTClient_disconnect(cfg.client, 10000);	/* 10s for the grace period */
+	MQTTClient_destroy(&cfg.client);
+#endif
 }
 
 int main(int ac, char **av){
@@ -420,7 +438,7 @@ int main(int ac, char **av){
 	switch( mosquitto_connect(cfg.mosq, cfg.Broker_Host, cfg.Broker_Port, BRK_KEEPALIVE) ){
 	case MOSQ_ERR_INVAL:
 		fputs("Invalid parameter for mosquitto_connect()\n", stderr);
-		mosquitto_destroy(cfg.mosq);
+		mosquitto_destatexitroy(cfg.mosq);
 		mosquitto_lib_cleanup();
 		exit(EXIT_FAILURE);
 	case MOSQ_ERR_ERRNO:
@@ -457,6 +475,8 @@ int main(int ac, char **av){
 	}
 #endif
 
+	atexit(theend);
+
 		/* Creation of reading threads */
 	assert(!pthread_attr_init (&thread_attr));
 	assert(!pthread_attr_setdetachstate (&thread_attr, PTHREAD_CREATE_DETACHED));
@@ -467,16 +487,8 @@ int main(int ac, char **av){
 		}
 	}
 
-sleep(400);
-
-		/* Some cleanup */
-#ifdef USE_MOSQUITTO
-	mosquitto_destroy(cfg.mosq);
-	mosquitto_lib_cleanup();
-#elif defined(USE_PAHO)
-	MQTTClient_disconnect(cfg.client, 10000);	/* 10s for the grace period */
-	MQTTClient_destroy(&cfg.client);
-#endif
+	signal(SIGINT, handleInt);
+	pause();
 
 	exit(EXIT_SUCCESS);
 }
