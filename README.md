@@ -1,3 +1,4 @@
+<pre>
 TeleInfod is a daemon that publishes electricity smart meters “TéléInformation” data to a MQTT Broker.
 
 Requirements :
@@ -10,7 +11,7 @@ Installation :
 --------------
 •	Get TeleInfod.c and put it in a temporary directory
 •	If you want to use MOSQUITTO’s own library :
-	o	Install MOSQUITTO 
+	o	Install MOSQUITTO :)
 	o	Compile TeleInfod using the following command line :
 gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
 •	If you want to use  PAHO library
@@ -52,3 +53,4 @@ In the case above, the following tree will be created :
 Each section runs in its own thread, so will not block others if the data line doesn’t send anything.
 
 Notez-bien : as of V1.0, TeleInfod has been made to suit my needs. Consequently it handles up to now only BASE (i.e. for photovoltaic production), and “Heure Creuse” contracts. Contributions are obviously welcomed if you want to add others.
+</pre>
