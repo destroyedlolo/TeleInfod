@@ -32,6 +32,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *							- live data moved to .../values/
  *		05/05/2015 - v1.0 LF - Add sumarry
  *							- release as v1.0
+ *		06/05/2015 - v1.1 LF - Send only strings to avoid endianness issue
  */
 
 #include <stdio.h>
@@ -51,7 +52,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -248,6 +249,7 @@ void *process_flow(void *actx){
 	char l[MAXLINE];
 	char *arg;
 	char *sumtopic;
+	char val[12];
 
 	if(!ctx->topic){
 		fputs("*E* configuration error : no topic specified, ignoring this section\n", stderr);
@@ -286,39 +288,43 @@ void *process_flow(void *actx){
 				if(debug)
 					printf("Power : '%d'\n", ctx->PAPP);
 				sprintf(l, "%s/values/PAPP", ctx->topic);
+				sprintf(val, "%d", ctx->PAPP);
 #ifdef USE_MOSQUITTO
-				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->PAPP), &(ctx->PAPP), 0, false);
+				mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-				papub( l, sizeof(ctx->PAPP), &(ctx->PAPP), 0 );
+				papub( l, strlen(val), val, 0 );
 #endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->IINST = atoi(extr_arg(arg,3));
 				if(debug)
 					printf("Intensity : '%d'\n", ctx->IINST);
 				sprintf(l, "%s/values/IINST", ctx->topic);
+				sprintf(val, "%d", ctx->IINST);
 #ifdef USE_MOSQUITTO
-				mosquitto_publish(cfg.mosq, NULL, l, sizeof(ctx->IINST), &(ctx->IINST), 0, false);
+				mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-				papub( l, sizeof(ctx->IINST), &(ctx->IINST), 0 );
+				papub( l, strlen(val), val, 0 );
 #endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->HCHC != v){
 					int diff = v - ctx->HCHC;
 					sprintf(l, "%s/values/HCHC", ctx->topic);
+					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
-					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+					mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v, 0 );
+					papub( l, strlen(val), val, 0 );
 #endif
 					if(ctx->HCHC){	/* forget the 1st run */
 						if(debug)
 							printf("Cnt HC : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHCd", ctx->topic);
+						sprintf(val, "%d", diff);
 #ifdef USE_MOSQUITTO
-						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff, 0 );
+						papub( l, strlen(val), val, 0 );
 #endif
 					}
 					ctx->HCHC = v;
@@ -328,19 +334,21 @@ void *process_flow(void *actx){
 				if(ctx->HCHP != v){
 					int diff = v - ctx->HCHP;
 					sprintf(l, "%s/values/HCHP", ctx->topic);
+					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
-					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+					mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v, 0 );
+					papub( l, strlen(val), val, 0 );
 #endif
 					if(ctx->HCHP){
 						if(debug)
 							printf("Cnt HP : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHPd", ctx->topic);
+						sprintf(val, "%d", diff);
 #ifdef USE_MOSQUITTO
-						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff, 0 );
+						papub( l, strlen(val), val, 0 );
 #endif
 					}
 					ctx->HCHP = v;
@@ -350,19 +358,21 @@ void *process_flow(void *actx){
 				if(ctx->BASE != v){
 					int diff = v - ctx->BASE;
 					sprintf(l, "%s/values/BASE", ctx->topic);
+					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
-					mosquitto_publish(cfg.mosq, NULL, l, sizeof(v), &v, 0, false);
+					mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-					papub( l, sizeof(v), &v, 0 );
+					papub( l, strlen(val), val, 0 );
 #endif
 					if(ctx->BASE){
 						if(debug)
 							printf("Cnt BASE : '%d'\n", diff);
 						sprintf(l, "%s/values/BASEd", ctx->topic);
+						sprintf(val, "%d", diff);
 #ifdef USE_MOSQUITTO
-						mosquitto_publish(cfg.mosq, NULL, l, sizeof(diff), &diff, 0, false);
+						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
-						papub( l, sizeof(diff), &diff, 0 );
+						papub( l, strlen(val), val, 0 );
 #endif
 					}
 					ctx->BASE = v;
@@ -388,9 +398,9 @@ void *process_flow(void *actx){
 		strcat(l,"\n}\n");
 
 #ifdef USE_MOSQUITTO
-		mosquitto_publish(cfg.mosq, NULL, sumtopic, sizeof(l), l, 0, true);
+		mosquitto_publish(cfg.mosq, NULL, sumtopic, strlen(l), l, 0, true);
 #elif defined(USE_PAHO)
-		papub( sumtopic, sizeof(l), l, 1 );
+		papub( sumtopic, strlen(l), l, 1 );
 #endif
 
 		sleep( cfg.delay );
