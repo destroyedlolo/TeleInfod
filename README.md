@@ -18,8 +18,8 @@
 
 #Launch options :#
 TeleInfod knows the following options :
-	-d : verbose output
-	-f<file> : loads <file> as configuration file
+	* -d : verbose output
+	* -f<file> : loads <file> as configuration file
 
 #Configuration file :#
 Without *–f* option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
@@ -39,12 +39,12 @@ Where
 * *Topic=* Root of the topic tree where to expose data
 
 In the case above, the following tree will be created :
-	*/TeleInfo/Production/values/IINST* – « Intensité instantanée »
-	*/TeleInfo/Production/values/PINST* – « Puissance instantanée »
-	*/TeleInfo/Production/values/BASE* – BASE counter
-	*/TeleInfo/Production/values/BASEd* – BASE counter difference vs the previous value sent
+	* */TeleInfo/Production/values/IINST* – « Intensité instantanée »
+	* */TeleInfo/Production/values/PINST* – « Puissance instantanée »
+	* */TeleInfo/Production/values/BASE* – BASE counter
+	* */TeleInfo/Production/values/BASEd* – BASE counter difference vs the previous value sent
 …
-	*/TeleInfo/Production/summary* – concatenation of all values above in *JSON* format. This value is “*retained*”, meaning the broker will reply immediately with last values sent. This topic is mostly used to feed monitoring tools (like my very own Domestik) to graph some trends without having to wait for fresh data. Whereas “Values” topics aim to push/refresh actual data on “live” dashboard.
+	* */TeleInfo/Production/summary* – concatenation of all values above in *JSON* format. This value is “*retained*”, meaning the broker will reply immediately with last values sent. This topic is mostly used to feed monitoring tools (like my very own Domestik) to graph some trends without having to wait for fresh data. Whereas “Values” topics aim to push/refresh actual data on “live” dashboard.
 Each section runs in its own thread, so will not block others if the data line doesn’t send anything.
 
 Notez-bien : as of V1.0, TeleInfod has been made to suit my needs. Consequently it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
