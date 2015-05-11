@@ -43,7 +43,7 @@ In the case above, the following tree will be created :
 * */TeleInfo/Production/values/PINST* – « Puissance instantanée »
 * */TeleInfo/Production/values/BASE* – BASE counter
 * */TeleInfo/Production/values/BASEd* – BASE counter difference vs the previous value sent
-…
+* …
 * */TeleInfo/Production/summary* – concatenation of all values above in *JSON* format. This value is “*retained*”, meaning the broker will reply immediately with last values sent. This topic is mostly used to feed monitoring tools (like my very own Domestik) to graph some trends without having to wait for fresh data. Whereas “Values” topics aim to push/refresh actual data on “live” dashboard.
 Each section runs in its own thread, so will not block others if the data line doesn’t send anything.
 
