@@ -8,8 +8,8 @@ depend() {
 	after mosquitto
 }
 
-TID_BIN=${DMKDEM_BIN:-/usr/local/Domestik/Client/dmkcheckd}
-TID_PID=${DMKDEM_PID:-/var/run/dmkcheckd.pid}
+TID_BIN=${DMKDEM_BIN:-/usr/local/sbin/TeleInfod}
+TID_PID=${DMKDEM_PID:-/var/run/TeleInfod.pid}
 TID_USR=${DMKDEM_USR:-teleinfod:nobody}
 # use following command to create this dedicated user
 # useradd --comment "TeleInfod injector user" --gid nogroup --groups uucp --system --no-user-group --shell /sbin/nologin --home-dir /dev/null teleinfod
