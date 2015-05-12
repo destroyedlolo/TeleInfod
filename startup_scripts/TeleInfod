@@ -1,0 +1,31 @@
+#!/sbin/runscript
+# Copyright Laurent Faillie 2015
+#
+# Start/Stop TeleInfo daemon on OpenRC system (tested on Gentoo)
+
+depend() {
+	need net
+	after mosquitto
+}
+
+TID_BIN=${DMKDEM_BIN:-/usr/local/Domestik/Client/dmkcheckd}
+TID_PID=${DMKDEM_PID:-/var/run/dmkcheckd.pid}
+TID_USR=${DMKDEM_USR:-teleinfod:nobody}
+# use following command to create this dedicated user
+# useradd --comment "TeleInfod injector user" --gid nogroup --groups uucp --system --no-user-group --shell /sbin/nologin --home-dir /dev/null teleinfod
+
+start() {
+	ebegin "Starting TeleInfod daemon"
+	start-stop-daemon --start --exec ${TID_BIN} \
+		--interpreted --user ${TID_USR} \
+		--background --make-pidfile --pidfile ${TID_PID}
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping TeleInfod daemon"
+	start-stop-daemon --stop --exec ${TID_BIN} \
+		--pidfile ${TID_PID}
+	eend $?
+}
+
