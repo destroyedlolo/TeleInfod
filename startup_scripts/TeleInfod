@@ -5,7 +5,7 @@
 
 depend() {
 	need net
-	after mosquitto
+	after mosquitto uart
 }
 
 TID_BIN=${DMKDEM_BIN:-/usr/local/sbin/TeleInfod}

@@ -1,0 +1,17 @@
+#!/sbin/runscript
+# Copyright Laurent Faillie 2015
+#
+# init uart for Teleinfo usage
+
+depend() {
+	need net
+	after mosquitto
+}
+
+start() {
+	ebegin "Init uart for Teleinformation"
+	stty 1200 cs7 evenp cstopb -igncr -inlcr -brkint -icrnl -opost -isig -icanon -iexten -F /dev/ttyS2
+	stty 1200 cs7 evenp cstopb -igncr -inlcr -brkint -icrnl -opost -isig -icanon -iexten -F /dev/ttyS3
+	eend $?
+}
+
