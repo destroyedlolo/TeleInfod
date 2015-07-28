@@ -284,9 +284,28 @@ void *process_flow(void *actx){
 		}
 
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
-			if(!strncmp(l,"ADCO",4) && cfg.delay )	/* Reaching the next one : existing only if we have to wait */
-				break;
-			else if((arg = striKWcmp(l,"PAPP"))){
+			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
+					/* publish summary */
+				sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->PAPP, ctx->IINST );
+				if(ctx->HCHC){
+					char *t = l + strlen(l);
+					sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->HCHC, ctx->HCHP);
+				}
+				if(ctx->BASE){
+					char *t = l + strlen(l);
+					sprintf(t, ",\n\"BASE\": %d", ctx->BASE);
+				}
+				strcat(l,"\n}\n");
+
+#ifdef USE_MOSQUITTO
+				mosquitto_publish(cfg.mosq, NULL, sumtopic, strlen(l), l, 0, true);
+#elif defined(USE_PAHO)
+				papub( sumtopic, strlen(l), l, 1 );
+#endif
+
+				if( cfg.delay )	/* xisting only if we have to wait */
+					break;
+			} else if((arg = striKWcmp(l,"PAPP"))){
 				ctx->PAPP = atoi(extr_arg(arg,5));
 				if(debug)
 					printf("Power : '%d'\n", ctx->PAPP);
@@ -388,23 +407,6 @@ void *process_flow(void *actx){
 		}
 		fclose(ftrame);
 
-			/* publish summary */
-		sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->PAPP, ctx->IINST );
-		if(ctx->HCHC){
-			char *t = l + strlen(l);
-			sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->HCHC, ctx->HCHP);
-		}
-		if(ctx->BASE){
-			char *t = l + strlen(l);
-			sprintf(t, ",\n\"BASE\": %d", ctx->BASE);
-		}
-		strcat(l,"\n}\n");
-
-#ifdef USE_MOSQUITTO
-		mosquitto_publish(cfg.mosq, NULL, sumtopic, strlen(l), l, 0, true);
-#elif defined(USE_PAHO)
-		papub( sumtopic, strlen(l), l, 1 );
-#endif
 
 		sleep( cfg.delay );
 	}
