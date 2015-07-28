@@ -33,6 +33,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *		05/05/2015 - v1.0 LF - Add sumarry
  *							- release as v1.0
  *		06/05/2015 - v1.1 LF - Send only strings to avoid endianness issue
+ *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stay open
  */
 
 #include <stdio.h>
@@ -144,6 +145,8 @@ void read_configuration( const char *fch){
 	cfg.delay = 30;
 #ifdef USE_MOSQUITTO
 	cfg.mosq = NULL;
+#else
+	cfg.client = NULL;
 #endif
 
 	if(debug)
@@ -281,7 +284,7 @@ void *process_flow(void *actx){
 		}
 
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
-			if(!strncmp(l,"ADCO",4))	/* Reaching the next one : existing */
+			if(!strncmp(l,"ADCO",4) && cfg.delay )	/* Reaching the next one : existing only if we have to wait */
 				break;
 			else if((arg = striKWcmp(l,"PAPP"))){
 				ctx->PAPP = atoi(extr_arg(arg,5));
