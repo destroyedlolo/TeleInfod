@@ -24,9 +24,9 @@ TeleInfod knows the following options :
 #Configuration file :#
 Without *–f* option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
 Following general directives are known :
-	* *Broker_Host=* where the Broker can be reached. Using moquitto library, only the hostname is included (as “localhost”, “myhost.mydomain.tld” ). Using Paho, use an URL like tcp://<hostname>:port (as tcp://localhost:1883).
-	* *Broker_Port=* the port to connect to (only when using Mosquitto library)
-	* *Sample_Delay=* Delay b/w 2 samples (in seconds, delay = 30s)
+* *Broker_Host=* where the Broker can be reached. Using moquitto library, only the hostname is included (as “localhost”, “myhost.mydomain.tld” ). Using Paho, use an URL like tcp://<hostname>:port (as tcp://localhost:1883).
+* *Broker_Port=* the port to connect to (only when using Mosquitto library)
+* *Sample_Delay=* Delay b/w 2 samples (in seconds, delay = 30s)
 One or more section has be defined as :
 
     *Production
