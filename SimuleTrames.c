@@ -42,6 +42,8 @@ gcc -Wall SimuleTrames.c -o SimuleTrame
 FILE *fdp=NULL, *fdc=NULL;
 
 void theend( void ){
+	fclose( fdc );
+
 	unlink( FPROD );
 	unlink( FCONSO );
 }
@@ -60,10 +62,11 @@ int main(){
 	atexit( theend );
 	assert( !mkfifo(FCONSO, 0666) );
 
-	assert( fdp = fopen(FPROD, "w") );
 /*
-	assert( fdc = fopen(FCONSO, "w") );
+	assert( fdp = fopen(FPROD, "w") );
 */
+	assert( fdc = fopen(FCONSO, "w") );
+
 	signal(SIGINT, handleInt);
 
 	for(;;){
@@ -73,12 +76,12 @@ int main(){
 		else
 			cntcc += pap;
 
-		fprintf(fdp, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\n");
-		fprintf(fdp, "IINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
-		fprintf(fdp, "HCHC %09ld Y\r\nHCHP %09ld +\r\n", cntcc, cntcp);
-		fprintf(fdp, "MOTDETAT 000000 B\r%c\b\n",3);
+		fprintf(fdc, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\n");
+		fprintf(fdc, "IINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
+		fprintf(fdc, "HCHC %09ld Y\r\nHCHP %09ld +\r\n", cntcc, cntcp);
+		fprintf(fdc, "MOTDETAT 000000 B\r%c\b\n",3);
 
-		fflush( fdp );
+		fflush( fdc );
 		sleep(1);
 	}
 	return 0;
