@@ -43,6 +43,7 @@ FILE *fdp=NULL, *fdc=NULL;
 
 void theend( void ){
 	fclose( fdc );
+	fclose( fdp );
 
 	unlink( FPROD );
 	unlink( FCONSO );
@@ -62,9 +63,7 @@ int main(){
 	atexit( theend );
 	assert( !mkfifo(FCONSO, 0666) );
 
-/*
 	assert( fdp = fopen(FPROD, "w") );
-*/
 	assert( fdc = fopen(FCONSO, "w") );
 
 	signal(SIGINT, handleInt);
@@ -76,12 +75,21 @@ int main(){
 		else
 			cntcc += pap;
 
+		unsigned long int pac = ((unsigned long int)time(NULL) % clock())/10;
+		cntp += pac;
+
 		fprintf(fdc, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\n");
 		fprintf(fdc, "IINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
 		fprintf(fdc, "HCHC %09ld Y\r\nHCHP %09ld +\r\n", cntcc, cntcp);
 		fprintf(fdc, "MOTDETAT 000000 B\r%c\b\n",3);
 
 		fflush( fdc );
+
+		fprintf(fdp, "TDETAT 000000 B\r\nADCO 987165432101 B\r\nOPTARIF BASE 0\r\nISOUSC 15 <\r\n");
+		fprintf(fdp, "BASE %09ld ,\r\nIINST %03ld Y\r\nPAPP %05ld +\r\n", cntp, pac / 220, pac);
+
+		fflush( fdp );
+
 		sleep(1);
 	}
 	return 0;
