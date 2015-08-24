@@ -40,7 +40,6 @@ gcc -Wall SimuleTrames.c -o SimuleTrame
 	/* Notez-bien : QUICK & DIRTY ! */
 
 FILE *fdp=NULL, *fdc=NULL;
-unsigned long int cntp, cntc;
 
 void theend( void ){
 	unlink( FPROD );
@@ -52,8 +51,9 @@ void handleInt(int na){
 }
 
 int main(){
-	cntp = (unsigned long int)clock();
-	cntc = (unsigned long int)time(NULL);
+	unsigned long int cntcp = (unsigned long int)clock(),
+		cntcc = ((unsigned long int)time(NULL) % clock()),
+		cntp = (unsigned long int)time(NULL);
 
 		/* Create fifo */
 	assert( !mkfifo(FPROD, 0666) );
@@ -67,9 +67,16 @@ int main(){
 	signal(SIGINT, handleInt);
 
 	for(;;){
-		cntp += ((unsigned long int)time(NULL) % clock())/100;
+		unsigned long int pap = ((unsigned long int)time(NULL) % clock())/10;
+		if(pap % 2)
+			cntcp += pap;
+		else
+			cntcc += pap;
 
-		fprintf(fdp, "HCHC %09ld +\r\n", cntp);
+		fprintf(fdp, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\n");
+		fprintf(fdp, "IINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
+		fprintf(fdp, "HCHC %09ld Y\r\nHCHP %09ld +\r\n", cntcc, cntcp);
+		fprintf(fdp, "MOTDETAT 000000 B\r%c\b\n",3);
 
 		fflush( fdp );
 		sleep(1);
