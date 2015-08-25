@@ -108,16 +108,20 @@ char *extr_arg(char *s, int l){
 	/*
 	 * Configuration
 	 */
-struct CSection {	/* Section of the configuration : a TéléInfo flow */
-	struct CSection *next;	/* Next section */
-	pthread_t thread;
-	const char *port;		/* Where to read */
-	const char *topic;		/* Broker's topic */
+struct figures {
 	int PAPP;				/* power */
 	int IINST;				/* Intensity */
 	int HCHC;				/* Counter "Heure Creuse" */
 	int HCHP;				/* Counter "Heure Plaine" */
 	int BASE;				/* Counter "Base" */
+};
+
+struct CSection {	/* Section of the configuration : a TéléInfo flow */
+	struct CSection *next;	/* Next section */
+	pthread_t thread;
+	const char *port;		/* Where to read */
+	const char *topic;		/* Broker's topic */
+	struct figures values;	/* actual values */
 };
 
 struct Config {
@@ -294,14 +298,14 @@ void *process_flow(void *actx){
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
 					/* publish summary */
-				sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->PAPP, ctx->IINST );
-				if(ctx->HCHC){
+				sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->values.PAPP, ctx->values.IINST );
+				if(ctx->values.HCHC){
 					char *t = l + strlen(l);
-					sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->HCHC, ctx->HCHP);
+					sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
 				}
-				if(ctx->BASE){
+				if(ctx->values.BASE){
 					char *t = l + strlen(l);
-					sprintf(t, ",\n\"BASE\": %d", ctx->BASE);
+					sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
 				}
 				strcat(l,"\n}\n");
 
@@ -314,22 +318,22 @@ void *process_flow(void *actx){
 				if( cfg.delay )	/* xisting only if we have to wait */
 					break;
 			} else if((arg = striKWcmp(l,"PAPP"))){
-				ctx->PAPP = atoi(extr_arg(arg,5));
+				ctx->values.PAPP = atoi(extr_arg(arg,5));
 				if(debug)
-					printf("Power : '%d'\n", ctx->PAPP);
+					printf("Power : '%d'\n", ctx->values.PAPP);
 				sprintf(l, "%s/values/PAPP", ctx->topic);
-				sprintf(val, "%d", ctx->PAPP);
+				sprintf(val, "%d", ctx->values.PAPP);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
 				papub( l, strlen(val), val, 0 );
 #endif
 			} else if((arg = striKWcmp(l,"IINST"))){
-				ctx->IINST = atoi(extr_arg(arg,3));
+				ctx->values.IINST = atoi(extr_arg(arg,3));
 				if(debug)
-					printf("Intensity : '%d'\n", ctx->IINST);
+					printf("Intensity : '%d'\n", ctx->values.IINST);
 				sprintf(l, "%s/values/IINST", ctx->topic);
-				sprintf(val, "%d", ctx->IINST);
+				sprintf(val, "%d", ctx->values.IINST);
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
@@ -337,8 +341,8 @@ void *process_flow(void *actx){
 #endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
-				if(ctx->HCHC != v){
-					int diff = v - ctx->HCHC;
+				if(ctx->values.HCHC != v){
+					int diff = v - ctx->values.HCHC;
 					sprintf(l, "%s/values/HCHC", ctx->topic);
 					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
@@ -346,7 +350,7 @@ void *process_flow(void *actx){
 #elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
 #endif
-					if(ctx->HCHC){	/* forget the 1st run */
+					if(ctx->values.HCHC){	/* forget the 1st run */
 						if(debug)
 							printf("Cnt HC : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHCd", ctx->topic);
@@ -357,12 +361,12 @@ void *process_flow(void *actx){
 						papub( l, strlen(val), val, 0 );
 #endif
 					}
-					ctx->HCHC = v;
+					ctx->values.HCHC = v;
 				}
 			} else if((arg = striKWcmp(l,"HCHP"))){
 				int v = atoi(extr_arg(arg,9));
-				if(ctx->HCHP != v){
-					int diff = v - ctx->HCHP;
+				if(ctx->values.HCHP != v){
+					int diff = v - ctx->values.HCHP;
 					sprintf(l, "%s/values/HCHP", ctx->topic);
 					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
@@ -370,7 +374,7 @@ void *process_flow(void *actx){
 #elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
 #endif
-					if(ctx->HCHP){
+					if(ctx->values.HCHP){
 						if(debug)
 							printf("Cnt HP : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHPd", ctx->topic);
@@ -381,12 +385,12 @@ void *process_flow(void *actx){
 						papub( l, strlen(val), val, 0 );
 #endif
 					}
-					ctx->HCHP = v;
+					ctx->values.HCHP = v;
 				}
 			} else if((arg = striKWcmp(l,"BASE"))){
 				int v = atoi(extr_arg(arg,9));
-				if(ctx->BASE != v){
-					int diff = v - ctx->BASE;
+				if(ctx->values.BASE != v){
+					int diff = v - ctx->values.BASE;
 					sprintf(l, "%s/values/BASE", ctx->topic);
 					sprintf(val, "%d", v);
 #ifdef USE_MOSQUITTO
@@ -394,7 +398,7 @@ void *process_flow(void *actx){
 #elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
 #endif
-					if(ctx->BASE){
+					if(ctx->values.BASE){
 						if(debug)
 							printf("Cnt BASE : '%d'\n", diff);
 						sprintf(l, "%s/values/BASEd", ctx->topic);
@@ -405,7 +409,7 @@ void *process_flow(void *actx){
 						papub( l, strlen(val), val, 0 );
 #endif
 					}
-					ctx->BASE = v;
+					ctx->values.BASE = v;
 				}
 			}
 		}
