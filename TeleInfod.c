@@ -34,6 +34,8 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *							- release as v1.0
  *		06/05/2015 - v1.1 LF - Send only strings to avoid endianness issue
  *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stay open
+ *					-------
+ *		25/08/2015 - v2.0 LF - Add monitoring period
  */
 
 #include <stdio.h>
@@ -53,7 +55,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "1.1"
+#define VERSION "2.0"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -123,6 +125,7 @@ struct Config {
 	const char *Broker_Host;
 	int Broker_Port;
 	int delay;
+	int period;
 #ifdef USE_MOSQUITTO
 	struct mosquitto *mosq;
 #elif defined(USE_PAHO)
@@ -143,6 +146,7 @@ void read_configuration( const char *fch){
 	cfg.Broker_Port = 1883;
 #endif
 	cfg.delay = 30;
+	cfg.period = 0;
 #ifdef USE_MOSQUITTO
 	cfg.mosq = NULL;
 #else
@@ -193,6 +197,10 @@ void read_configuration( const char *fch){
 			if(debug)
 				printf("Broker port : %d\n", cfg.Broker_Port);
 #endif
+		} else if((arg = striKWcmp(l,"Monitoring_Period="))){
+			cfg.period = atoi( arg );
+			if(debug)
+				printf("Monitoring period : %d\n", cfg.period);
 		} else if((arg = striKWcmp(l,"Port="))){
 			if(!cfg.sections){
 				fputs("*F* Configuration issue : Port directive outside a section\n", stderr);
