@@ -300,16 +300,18 @@ void *process_flow(void *actx){
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
 					/* publish summary */
-				sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->values.PAPP, ctx->values.IINST );
-				if(ctx->values.HCHC){
-					char *t = l + strlen(l);
-					sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
+				if(!cfg.period){	/* No period specified, sending actual values */
+					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->values.PAPP, ctx->values.IINST );
+					if(ctx->values.HCHC){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
+					}
+					if(ctx->values.BASE){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
+					}
+					strcat(l,"\n}\n");
 				}
-				if(ctx->values.BASE){
-					char *t = l + strlen(l);
-					sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
-				}
-				strcat(l,"\n}\n");
 
 #ifdef USE_MOSQUITTO
 				mosquitto_publish(cfg.mosq, NULL, sumtopic, strlen(l), l, 0, true);
@@ -317,10 +319,14 @@ void *process_flow(void *actx){
 				papub( sumtopic, strlen(l), l, 1 );
 #endif
 
-				if( cfg.delay )	/* xisting only if we have to wait */
+				if( cfg.delay )	/* existing only if we have to wait */
 					break;
 			} else if((arg = striKWcmp(l,"PAPP"))){
 				ctx->values.PAPP = atoi(extr_arg(arg,5));
+
+				if(cfg.period && ctx->max.PAPP < ctx->values.PAPP )
+						ctx->max.PAPP = ctx->values.PAPP;
+
 				if(debug)
 					printf("Power : '%d'\n", ctx->values.PAPP);
 				sprintf(l, "%s/values/PAPP", ctx->topic);
@@ -332,6 +338,10 @@ void *process_flow(void *actx){
 #endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->values.IINST = atoi(extr_arg(arg,3));
+
+				if(cfg.period && ctx->max.IINST < ctx->values.IINST )
+						ctx->max.IINST = ctx->values.IINST;
+
 				if(debug)
 					printf("Intensity : '%d'\n", ctx->values.IINST);
 				sprintf(l, "%s/values/IINST", ctx->topic);
@@ -357,6 +367,10 @@ void *process_flow(void *actx){
 							printf("Cnt HC : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHCd", ctx->topic);
 						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.HCHC < diff )
+							ctx->max.HCHC = diff;
+
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
@@ -381,6 +395,10 @@ void *process_flow(void *actx){
 							printf("Cnt HP : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHPd", ctx->topic);
 						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.HCHP < diff)
+							ctx->max.HCHP = diff;
+
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
@@ -405,6 +423,10 @@ void *process_flow(void *actx){
 							printf("Cnt BASE : '%d'\n", diff);
 						sprintf(l, "%s/values/BASEd", ctx->topic);
 						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.BASE < diff)
+							ctx->max.BASE = diff;
+
 #ifdef USE_MOSQUITTO
 						mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false);
 #elif defined(USE_PAHO)
@@ -545,7 +567,40 @@ int main(int ac, char **av){
 	}
 
 	signal(SIGINT, handleInt);
-	pause();
+	if(cfg.period){
+		for(;;){
+			puts("bip");
+			sleep( cfg.period );
+
+/*
+ * Envoie des données max.
+ * Boucle sur les section
+ * 		envoyer un <topic>/summary pour chacun
+ *
+ 				{
+					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->max.PAPP, ctx->max.IINST );
+					if(ctx->values.HCHC){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
+					}
+					if(ctx->values.BASE){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
+					}
+					if(ctx->max.HCHC != -1){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"HCHCd\": %d,\n\"HCHPd\": %d", ctx->max.HCHC, ctx->max.HCHP);
+					}
+					if(ctx->max.BASE != -1){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"BASEd\": %d", ctx->max.BASE);
+					}
+					strcat(l,"\n}\n");
+				}
+*/
+		}
+	} else
+		pause();
 
 	exit(EXIT_SUCCESS);
 }
