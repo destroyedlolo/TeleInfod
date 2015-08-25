@@ -122,6 +122,7 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	const char *port;		/* Where to read */
 	const char *topic;		/* Broker's topic */
 	struct figures values;	/* actual values */
+	struct figures max;		/* Maximum values during monitoring period */
 };
 
 struct Config {
@@ -172,10 +173,11 @@ void read_configuration( const char *fch){
 		if(*l == '*'){	/* Entering in a new section */
 			struct CSection *n = malloc( sizeof(struct CSection) );
 			assert(n);
-			memset(n, 0, sizeof(struct CSection));	/* Clear all fields to help to generate the summary */ 
-			n->next = cfg.sections;
-
+			memset(n, 0, sizeof(struct CSection));	/* Clear all fields to help to generate the summary */
+			n->max.PAPP = n->max.IINST = n->max.HCHC = n->max.HCHP = n->max.BASE = -1;
 			n->port = n->topic = NULL;
+
+			n->next = cfg.sections;
 
 			cfg.sections = n;
 			if(debug)
