@@ -121,6 +121,7 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	pthread_t thread;
 	const char *port;		/* Where to read */
 	const char *topic;		/* Broker's topic */
+	char *sumtopic;			/* Summary topic */
 	struct figures values;	/* actual values */
 	struct figures max;		/* Maximum values during monitoring period */
 };
@@ -265,16 +266,15 @@ void *process_flow(void *actx){
 	FILE *ftrame;
 	char l[MAXLINE];
 	char *arg;
-	char *sumtopic;
 	char val[12];
 
 	if(!ctx->topic){
 		fputs("*E* configuration error : no topic specified, ignoring this section\n", stderr);
 		pthread_exit(0);
 	}
-	assert( sumtopic = malloc( strlen(ctx->topic)+9 ) );	/* + "/summary" + 1 */
-	strcpy( sumtopic, ctx->topic );
-	strcat( sumtopic, "/summary" );
+	assert( ctx->sumtopic = malloc( strlen(ctx->topic)+9 ) );	/* + "/summary" + 1 */
+	strcpy( ctx->sumtopic, ctx->topic );
+	strcat( ctx->sumtopic, "/summary" );
 
 	if(!ctx->port){
 		fprintf(stderr, "*E* configuration error : no port specified for '%s', ignoring this section\n", ctx->topic);
@@ -311,13 +311,13 @@ void *process_flow(void *actx){
 						sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
 					}
 					strcat(l,"\n}\n");
-				}
 
 #ifdef USE_MOSQUITTO
-				mosquitto_publish(cfg.mosq, NULL, sumtopic, strlen(l), l, 0, true);
+					mosquitto_publish(cfg.mosq, NULL, ctx->sumtopic, strlen(l), l, 0, true);
 #elif defined(USE_PAHO)
-				papub( sumtopic, strlen(l), l, 1 );
+					papub( ctx->sumtopic, strlen(l), l, 1 );
 #endif
+				}
 
 				if( cfg.delay )	/* existing only if we have to wait */
 					break;
@@ -568,17 +568,14 @@ int main(int ac, char **av){
 
 	signal(SIGINT, handleInt);
 	if(cfg.period){
+		char l[MAXLINE];
 		for(;;){
-			puts("bip");
 			sleep( cfg.period );
-
-/*
- * Envoie des données max.
- * Boucle sur les section
- * 		envoyer un <topic>/summary pour chacun
- *
- 				{
+			for(struct CSection *ctx = cfg.sections; ctx; ctx = ctx->next){
+				if(ctx->sumtopic){
 					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->max.PAPP, ctx->max.IINST );
+					ctx->max.PAPP = ctx->max.IINST = -1;
+
 					if(ctx->values.HCHC){
 						char *t = l + strlen(l);
 						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
@@ -587,17 +584,27 @@ int main(int ac, char **av){
 						char *t = l + strlen(l);
 						sprintf(t, ",\n\"BASE\": %d", ctx->values.BASE);
 					}
+
 					if(ctx->max.HCHC != -1){
 						char *t = l + strlen(l);
 						sprintf(t, ",\n\"HCHCd\": %d,\n\"HCHPd\": %d", ctx->max.HCHC, ctx->max.HCHP);
+						ctx->max.HCHC = ctx->max.HCHP = -1;
 					}
 					if(ctx->max.BASE != -1){
 						char *t = l + strlen(l);
 						sprintf(t, ",\n\"BASEd\": %d", ctx->max.BASE);
+						ctx->max.BASE = -1;
 					}
 					strcat(l,"\n}\n");
+
+#ifdef USE_MOSQUITTO
+					mosquitto_publish(cfg.mosq, NULL, ctx->sumtopic, strlen(l), l, 0, true);
+#elif defined(USE_PAHO)
+					papub( ctx->sumtopic, strlen(l), l, 1 );
+#endif
+
 				}
-*/
+			}
 		}
 	} else
 		pause();
