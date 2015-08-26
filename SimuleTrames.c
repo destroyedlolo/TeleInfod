@@ -59,9 +59,9 @@ int main(){
 		cntp = (unsigned long int)time(NULL);
 
 		/* Create fifo */
-	assert( !mkfifo(FPROD, 0666) );
+	mkfifo(FPROD, 0666);
 	atexit( theend );
-	assert( !mkfifo(FCONSO, 0666) );
+	mkfifo(FCONSO, 0666);
 
 	assert( fdp = fopen(FPROD, "w") );
 	assert( fdc = fopen(FCONSO, "w") );
