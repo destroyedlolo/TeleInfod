@@ -27,10 +27,10 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *
  *		03/05/2015 - v0.1 LF - Start of development, using Mosquitto's own library, synchronous
  *		04/05/2015 - v0.2 LF - Add Paho library and asynchronous calls
- *		05/05/2015 - v0.3 LF - main infinit loop implemented
+ *		05/05/2015 - v0.3 LF - main infinite loop implemented
  *							- add retained option when using Paho
  *							- live data moved to .../values/
- *		05/05/2015 - v1.0 LF - Add sumarry
+ *		05/05/2015 - v1.0 LF - Add summary
  *							- release as v1.0
  *		06/05/2015 - v1.1 LF - Send only strings to avoid endianness issue
  *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stay open
@@ -587,8 +587,13 @@ int main(int ac, char **av){
 
 					if(ctx->max.HCHC != -1){
 						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHCd\": %d,\n\"HCHPd\": %d", ctx->max.HCHC, ctx->max.HCHP);
-						ctx->max.HCHC = ctx->max.HCHP = -1;
+						sprintf(t, ",\n\"HCHCd\": %d", ctx->max.HCHC);
+						ctx->max.HCHC = -1;
+					}
+					if(ctx->max.HCHP != -1){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"HCHPd\": %d", ctx->max.HCHP);
+						ctx->max.HCHP = -1;
 					}
 					if(ctx->max.BASE != -1){
 						char *t = l + strlen(l);
