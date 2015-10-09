@@ -517,7 +517,7 @@ int main(int ac, char **av){
 	switch( mosquitto_connect(cfg.mosq, cfg.Broker_Host, cfg.Broker_Port, BRK_KEEPALIVE) ){
 	case MOSQ_ERR_INVAL:
 		fputs("Invalid parameter for mosquitto_connect()\n", stderr);
-		mosquitto_destatexitroy(cfg.mosq);
+		mosquitto_destroy(cfg.mosq);
 		mosquitto_lib_cleanup();
 		exit(EXIT_FAILURE);
 	case MOSQ_ERR_ERRNO:
