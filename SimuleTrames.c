@@ -21,7 +21,8 @@ gcc -Wall SimuleTrames.c -o SimuleTrame
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
- *	23/08/2015 - v1	LF - First version
+ *	23/08/2015 - v1		LF - First version
+ *	22/10/2015 - v1.1 	LF - Add some fields + conditionnaly compile production frame
  */
 
 #include <fcntl.h>
@@ -34,8 +35,10 @@ gcc -Wall SimuleTrames.c -o SimuleTrame
 #include <signal.h>
 #include <time.h>
 
-#define FPROD "/tmp/prod"
 #define FCONSO "/tmp/conso"
+/*
+#define FPROD "/tmp/prod"
+*/
 
 	/* Notez-bien : QUICK & DIRTY ! */
 
@@ -43,10 +46,12 @@ FILE *fdp=NULL, *fdc=NULL;
 
 void theend( void ){
 	fclose( fdc );
-	fclose( fdp );
-
-	unlink( FPROD );
 	unlink( FCONSO );
+
+#ifdef FPROD
+	fclose( fdp );
+	unlink( FPROD );
+#endif
 }
 
 void handleInt(int na){
@@ -59,12 +64,14 @@ int main(){
 		cntp = (unsigned long int)time(NULL);
 
 		/* Create fifo */
-	mkfifo(FPROD, 0666);
-	atexit( theend );
 	mkfifo(FCONSO, 0666);
-
-	assert( fdp = fopen(FPROD, "w") );
 	assert( fdc = fopen(FCONSO, "w") );
+	atexit( theend );
+
+#ifdef FPROD
+	mkfifo(FPROD, 0666);
+	assert( fdp = fopen(FPROD, "w") );
+#endif
 
 	signal(SIGINT, handleInt);
 
@@ -78,17 +85,18 @@ int main(){
 		unsigned long int pac = ((unsigned long int)time(NULL) % clock())/10;
 		cntp += pac;
 
-		fprintf(fdc, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\n");
-		fprintf(fdc, "IINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
-		fprintf(fdc, "HCHC %09ld Y\r\nHCHP %09ld +\r\n", cntcc, cntcp);
+		fprintf(fdc, "ADCO 012345678901 B\r\nOPTARIF HC.. <\r\nISOUSC 60 <\r\nPTEC HP..  \r\n");
+		fprintf(fdc, "IMAX 062 G\r\nINST %03ld Y\r\nPAPP %05ld +\r\n", pap / 220, pap);
+		fprintf(fdc, "HCHC %09ld Y\r\nHCHP %09ld +\r\nHHPHC %c .\r\n", cntcc, cntcp, (pap % 2)?'P':'C');
 		fprintf(fdc, "MOTDETAT 000000 B\r%c\b\n",3);
 
 		fflush( fdc );
 
+#ifdef FPROD
 		fprintf(fdp, "TDETAT 000000 B\r\nADCO 987165432101 B\r\nOPTARIF BASE 0\r\nISOUSC 15 <\r\n");
 		fprintf(fdp, "BASE %09ld ,\r\nIINST %03ld Y\r\nPAPP %05ld +\r\n", cntp, pac / 220, pac);
-
 		fflush( fdp );
+#endif
 
 		sleep(1);
 	}
