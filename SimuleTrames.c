@@ -7,7 +7,7 @@
  *	SimuleTrames is used to test TeleInfod.
  *
  * Compilation :
-gcc -Wall SimuleTrames.c -o SimuleTrame
+gcc -Wall SimuleTrames.c -o SimuleTrames
  *
  * Copyright 2015 Laurent Faillie
  *
@@ -36,9 +36,7 @@ gcc -Wall SimuleTrames.c -o SimuleTrame
 #include <time.h>
 
 #define FCONSO "/tmp/conso"
-/*
 #define FPROD "/tmp/prod"
-*/
 
 	/* Notez-bien : QUICK & DIRTY ! */
 
