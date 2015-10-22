@@ -36,6 +36,8 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stay open
  *					-------
  *		25/08/2015 - v2.0 LF - Add monitoring period
+ *		22/10/2015 - v2.1 LF - Improve Mosquitto handling
+ *		- Add fields PTEC, IMAX, ISOUSC, HHPHC, OPTARIF
  */
 
 #include <stdio.h>
@@ -55,7 +57,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "2.0"
+#define VERSION "2.1"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -231,7 +233,29 @@ void read_configuration( const char *fch){
 	fclose(f);
 }
 
-#ifdef USE_PAHO
+#ifdef USE_MOSQUITTO
+int papub( const char *topic, int length, void *payload, int retained ){	/* Custom wrapper to publish */
+	switch(mosquitto_publish(cfg.mosq, NULL, topic, length, payload, 0, retained ? true : false)){
+	case MOSQ_ERR_INVAL:
+		fputs("The input parameters were invalid",stderr);
+		break;
+	case MOSQ_ERR_NOMEM:
+		fputs("An out of memory condition occurred",stderr);
+		break;
+	case MOSQ_ERR_NO_CONN:
+		fputs("The client isn’t connected to a broker",stderr);
+		break;
+	case MOSQ_ERR_PROTOCOL:
+		fputs("There is a protocol error communicating with the broker",stderr);
+		break;
+	case MOSQ_ERR_PAYLOAD_SIZE:
+		fputs("Payloadlen is too large",stderr);
+		break;
+	}
+
+	return 1;
+}
+#elif USE_PAHO
 	/*
 	 * Paho's specific functions
 	 */
@@ -312,27 +336,7 @@ void *process_flow(void *actx){
 					}
 					strcat(l,"\n}\n");
 
-#ifdef USE_MOSQUITTO
-					switch(mosquitto_publish(cfg.mosq, NULL, ctx->sumtopic, strlen(l), l, 0, true)){
-					case MOSQ_ERR_INVAL:
-						fputs("The input parameters were invalid",stderr);
-						break;
-					case MOSQ_ERR_NOMEM:
-						fputs("An out of memory condition occurred",stderr);
-						break;
-					case MOSQ_ERR_NO_CONN:
-						fputs("The client isn’t connected to a broker",stderr);
-						break;
-					case MOSQ_ERR_PROTOCOL:
-						fputs("There is a protocol error communicating with the broker",stderr);
-						break;
-					case MOSQ_ERR_PAYLOAD_SIZE:
-						fputs("Payloadlen is too large",stderr);
-						break;
-					}
-#elif defined(USE_PAHO)
 					papub( ctx->sumtopic, strlen(l), l, 1 );
-#endif
 				}
 
 				if( cfg.delay )	/* existing only if we have to wait */
@@ -347,28 +351,7 @@ void *process_flow(void *actx){
 					printf("Power : '%d'\n", ctx->values.PAPP);
 				sprintf(l, "%s/values/PAPP", ctx->topic);
 				sprintf(val, "%d", ctx->values.PAPP);
-#ifdef USE_MOSQUITTO
-				switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-				case MOSQ_ERR_INVAL:
-					fputs("The input parameters were invalid",stderr);
-					break;
-				case MOSQ_ERR_NOMEM:
-					fputs("An out of memory condition occurred",stderr);
-					break;
-				case MOSQ_ERR_NO_CONN:
-					fputs("The client isn’t connected to a broker",stderr);
-					break;
-				case MOSQ_ERR_PROTOCOL:
-					fputs("There is a protocol error communicating with the broker",stderr);
-					break;
-				case MOSQ_ERR_PAYLOAD_SIZE:
-					fputs("Payloadlen is too large",stderr);
-					break;
-				}
-
-#elif defined(USE_PAHO)
 				papub( l, strlen(val), val, 0 );
-#endif
 			} else if((arg = striKWcmp(l,"IINST"))){
 				ctx->values.IINST = atoi(extr_arg(arg,3));
 
@@ -379,54 +362,15 @@ void *process_flow(void *actx){
 					printf("Intensity : '%d'\n", ctx->values.IINST);
 				sprintf(l, "%s/values/IINST", ctx->topic);
 				sprintf(val, "%d", ctx->values.IINST);
-#ifdef USE_MOSQUITTO
-				switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-				case MOSQ_ERR_INVAL:
-					fputs("The input parameters were invalid",stderr);
-					break;
-				case MOSQ_ERR_NOMEM:
-					fputs("An out of memory condition occurred",stderr);
-					break;
-				case MOSQ_ERR_NO_CONN:
-					fputs("The client isn’t connected to a broker",stderr);
-					break;
-				case MOSQ_ERR_PROTOCOL:
-					fputs("There is a protocol error communicating with the broker",stderr);
-					break;
-				case MOSQ_ERR_PAYLOAD_SIZE:
-					fputs("Payloadlen is too large",stderr);
-					break;
-				}
-#elif defined(USE_PAHO)
 				papub( l, strlen(val), val, 0 );
-#endif
 			} else if((arg = striKWcmp(l,"HCHC"))){
 				int v = atoi(extr_arg(arg,9));
 				if(ctx->values.HCHC != v){
 					int diff = v - ctx->values.HCHC;
 					sprintf(l, "%s/values/HCHC", ctx->topic);
 					sprintf(val, "%d", v);
-#ifdef USE_MOSQUITTO
-					switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-					case MOSQ_ERR_INVAL:
-						fputs("The input parameters were invalid",stderr);
-						break;
-					case MOSQ_ERR_NOMEM:
-						fputs("An out of memory condition occurred",stderr);
-						break;
-					case MOSQ_ERR_NO_CONN:
-						fputs("The client isn’t connected to a broker",stderr);
-						break;
-					case MOSQ_ERR_PROTOCOL:
-						fputs("There is a protocol error communicating with the broker",stderr);
-						break;
-					case MOSQ_ERR_PAYLOAD_SIZE:
-						fputs("Payloadlen is too large",stderr);
-						break;
-					}
-#elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
-#endif
+
 					if(ctx->values.HCHC){	/* forget the 1st run */
 						if(debug)
 							printf("Cnt HC : '%d'\n", diff);
@@ -435,28 +379,8 @@ void *process_flow(void *actx){
 
 						if(cfg.period && ctx->max.HCHC < diff )
 							ctx->max.HCHC = diff;
-
-#ifdef USE_MOSQUITTO
-						switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-						case MOSQ_ERR_INVAL:
-							fputs("The input parameters were invalid",stderr);
-							break;
-						case MOSQ_ERR_NOMEM:
-							fputs("An out of memory condition occurred",stderr);
-							break;
-						case MOSQ_ERR_NO_CONN:
-							fputs("The client isn’t connected to a broker",stderr);
-							break;
-						case MOSQ_ERR_PROTOCOL:
-							fputs("There is a protocol error communicating with the broker",stderr);
-							break;
-						case MOSQ_ERR_PAYLOAD_SIZE:
-							fputs("Payloadlen is too large",stderr);
-							break;
-						}
-#elif defined(USE_PAHO)
 						papub( l, strlen(val), val, 0 );
-#endif
+
 					}
 					ctx->values.HCHC = v;
 				}
@@ -466,27 +390,8 @@ void *process_flow(void *actx){
 					int diff = v - ctx->values.HCHP;
 					sprintf(l, "%s/values/HCHP", ctx->topic);
 					sprintf(val, "%d", v);
-#ifdef USE_MOSQUITTO
-					switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-					case MOSQ_ERR_INVAL:
-						fputs("The input parameters were invalid",stderr);
-						break;
-					case MOSQ_ERR_NOMEM:
-						fputs("An out of memory condition occurred",stderr);
-						break;
-					case MOSQ_ERR_NO_CONN:
-						fputs("The client isn’t connected to a broker",stderr);
-						break;
-					case MOSQ_ERR_PROTOCOL:
-						fputs("There is a protocol error communicating with the broker",stderr);
-						break;
-					case MOSQ_ERR_PAYLOAD_SIZE:
-						fputs("Payloadlen is too large",stderr);
-						break;
-					}
-#elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
-#endif
+
 					if(ctx->values.HCHP){
 						if(debug)
 							printf("Cnt HP : '%d'\n", diff);
@@ -496,27 +401,8 @@ void *process_flow(void *actx){
 						if(cfg.period && ctx->max.HCHP < diff)
 							ctx->max.HCHP = diff;
 
-#ifdef USE_MOSQUITTO
-						switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-						case MOSQ_ERR_INVAL:
-							fputs("The input parameters were invalid",stderr);
-							break;
-						case MOSQ_ERR_NOMEM:
-							fputs("An out of memory condition occurred",stderr);
-							break;
-						case MOSQ_ERR_NO_CONN:
-							fputs("The client isn’t connected to a broker",stderr);
-							break;
-						case MOSQ_ERR_PROTOCOL:
-							fputs("There is a protocol error communicating with the broker",stderr);
-							break;
-						case MOSQ_ERR_PAYLOAD_SIZE:
-							fputs("Payloadlen is too large",stderr);
-							break;
-						}
-#elif defined(USE_PAHO)
 						papub( l, strlen(val), val, 0 );
-#endif
+
 					}
 					ctx->values.HCHP = v;
 				}
@@ -526,27 +412,8 @@ void *process_flow(void *actx){
 					int diff = v - ctx->values.BASE;
 					sprintf(l, "%s/values/BASE", ctx->topic);
 					sprintf(val, "%d", v);
-#ifdef USE_MOSQUITTO
-					switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-					case MOSQ_ERR_INVAL:
-						fputs("The input parameters were invalid",stderr);
-						break;
-					case MOSQ_ERR_NOMEM:
-						fputs("An out of memory condition occurred",stderr);
-						break;
-					case MOSQ_ERR_NO_CONN:
-						fputs("The client isn’t connected to a broker",stderr);
-						break;
-					case MOSQ_ERR_PROTOCOL:
-						fputs("There is a protocol error communicating with the broker",stderr);
-						break;
-					case MOSQ_ERR_PAYLOAD_SIZE:
-						fputs("Payloadlen is too large",stderr);
-						break;
-					}
-#elif defined(USE_PAHO)
 					papub( l, strlen(val), val, 0 );
-#endif
+
 					if(ctx->values.BASE){
 						if(debug)
 							printf("Cnt BASE : '%d'\n", diff);
@@ -556,27 +423,8 @@ void *process_flow(void *actx){
 						if(cfg.period && ctx->max.BASE < diff)
 							ctx->max.BASE = diff;
 
-#ifdef USE_MOSQUITTO
-						switch(mosquitto_publish(cfg.mosq, NULL, l, strlen(val), val, 0, false)){
-						case MOSQ_ERR_INVAL:
-							fputs("The input parameters were invalid",stderr);
-							break;
-						case MOSQ_ERR_NOMEM:
-							fputs("An out of memory condition occurred",stderr);
-							break;
-						case MOSQ_ERR_NO_CONN:
-							fputs("The client isn’t connected to a broker",stderr);
-							break;
-						case MOSQ_ERR_PROTOCOL:
-							fputs("There is a protocol error communicating with the broker",stderr);
-							break;
-						case MOSQ_ERR_PAYLOAD_SIZE:
-							fputs("Payloadlen is too large",stderr);
-							break;
-						}
-#elif defined(USE_PAHO)
 						papub( l, strlen(val), val, 0 );
-#endif
+
 					}
 					ctx->values.BASE = v;
 				}
@@ -750,28 +598,7 @@ int main(int ac, char **av){
 					}
 					strcat(l,"\n}\n");
 
-#ifdef USE_MOSQUITTO
-					switch(mosquitto_publish(cfg.mosq, NULL, ctx->sumtopic, strlen(l), l, 0, true)){
-					case MOSQ_ERR_INVAL:
-						fputs("The input parameters were invalid",stderr);
-						break;
-					case MOSQ_ERR_NOMEM:
-						fputs("An out of memory condition occurred",stderr);
-						break;
-					case MOSQ_ERR_NO_CONN:
-						fputs("The client isn’t connected to a broker",stderr);
-						break;
-					case MOSQ_ERR_PROTOCOL:
-						fputs("There is a protocol error communicating with the broker",stderr);
-						break;
-					case MOSQ_ERR_PAYLOAD_SIZE:
-						fputs("Payloadlen is too large",stderr);
-						break;
-					}
-#elif defined(USE_PAHO)
 					papub( ctx->sumtopic, strlen(l), l, 1 );
-#endif
-
 				}
 			}
 		}
