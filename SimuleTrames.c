@@ -63,12 +63,16 @@ int main(){
 
 		/* Create fifo */
 	mkfifo(FCONSO, 0666);
+#ifdef FPROD
+	mkfifo(FPROD, 0666);
+#endif
 	assert( fdc = fopen(FCONSO, "w") );
 	atexit( theend );
 
 #ifdef FPROD
-	mkfifo(FPROD, 0666);
 	assert( fdp = fopen(FPROD, "w") );
+#else
+	puts("*W* Prod not enabled");
 #endif
 
 	signal(SIGINT, handleInt);
