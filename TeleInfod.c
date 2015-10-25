@@ -117,6 +117,7 @@ struct figures {
 	int HCHP;				/* Counter "Heure Plaine" */
 	int BASE;				/* Counter "Base" */
 	char PTEC[4];			/* Current billing */
+	int ISOUSC;				/* Subscribed intensity */
 };
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
@@ -429,8 +430,8 @@ void *process_flow(void *actx){
 					}
 					ctx->values.BASE = v;
 				}
-			} else if((arg = striKWcmp(l,"PTEC "))){
-				arg[4] = 0;
+			} else if((arg = striKWcmp(l,"PTEC"))){
+				arg = extr_arg(arg, 4);
 				if(strncmp(ctx->values.PTEC, arg, 4)){
 					memcpy(ctx->values.PTEC, arg, 4);
 					sprintf(val, "%4s", arg);
@@ -439,6 +440,14 @@ void *process_flow(void *actx){
 					sprintf(l, "%s/values/PTEC", ctx->topic);
 
 					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"ISOUSC"))){
+				int v = atoi(extr_arg(arg,2));
+				if(ctx->values.ISOUSC != v){
+					ctx->values.ISOUSC = v;
+					sprintf(l, "%s/values/ISOUSC", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 0 );
 				}
 			}
 		}
