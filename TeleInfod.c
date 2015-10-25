@@ -120,6 +120,7 @@ struct figures {
 	int ISOUSC;				/* Subscribed intensity */
 	char HHPHC;				/* Groupe horaire */
 	char OPTARIF[4];		/* Billing Option */
+	int IMAX;				/* Maximum intensity */
 };
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
@@ -468,6 +469,14 @@ void *process_flow(void *actx){
 						printf("OPTARIF : '%s'\n", val);
 					sprintf(l, "%s/values/OPTARIF", ctx->topic);
 
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"IMAX"))){
+				int v = atoi(extr_arg(arg,3));
+				if(ctx->values.IMAX != v){
+					ctx->values.IMAX = v;
+					sprintf(l, "%s/values/IMAX", ctx->topic);
+					sprintf(val, "%d", v);
 					papub( l, strlen(val), val, 1 );
 				}
 			}
