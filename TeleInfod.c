@@ -116,6 +116,7 @@ struct figures {
 	int HCHC;				/* Counter "Heure Creuse" */
 	int HCHP;				/* Counter "Heure Plaine" */
 	int BASE;				/* Counter "Base" */
+	char PTEC[4];			/* Current billing */
 };
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
@@ -427,6 +428,17 @@ void *process_flow(void *actx){
 
 					}
 					ctx->values.BASE = v;
+				}
+			} else if((arg = striKWcmp(l,"PTEC "))){
+				arg[4] = 0;
+				if(strncmp(ctx->values.PTEC, arg, 4)){
+					memcpy(ctx->values.PTEC, arg, 4);
+					sprintf(val, "%4s", arg);
+					if(debug)
+						printf("PTEC : '%s'\n", val);
+					sprintf(l, "%s/values/PTEC", ctx->topic);
+
+					papub( l, strlen(val), val, 1 );
 				}
 			}
 		}
