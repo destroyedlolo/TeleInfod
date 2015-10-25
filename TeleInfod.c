@@ -118,6 +118,7 @@ struct figures {
 	int BASE;				/* Counter "Base" */
 	char PTEC[4];			/* Current billing */
 	int ISOUSC;				/* Subscribed intensity */
+	char HHPHC;				/* Groupe horaire */
 };
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
@@ -447,7 +448,15 @@ void *process_flow(void *actx){
 					ctx->values.ISOUSC = v;
 					sprintf(l, "%s/values/ISOUSC", ctx->topic);
 					sprintf(val, "%d", v);
-					papub( l, strlen(val), val, 0 );
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"HHPHC"))){
+				char v = *extr_arg(arg,1);
+				if(ctx->values.HHPHC != v){
+					ctx->values.HHPHC = v;
+					sprintf(l, "%s/values/HHPHC", ctx->topic);
+					sprintf(val, "%c", v);
+					papub( l, strlen(val), val, 1 );
 				}
 			}
 		}
