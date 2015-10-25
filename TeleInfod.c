@@ -119,6 +119,7 @@ struct figures {
 	char PTEC[4];			/* Current billing */
 	int ISOUSC;				/* Subscribed intensity */
 	char HHPHC;				/* Groupe horaire */
+	char OPTARIF[4];		/* Billing Option */
 };
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
@@ -456,6 +457,17 @@ void *process_flow(void *actx){
 					ctx->values.HHPHC = v;
 					sprintf(l, "%s/values/HHPHC", ctx->topic);
 					sprintf(val, "%c", v);
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"OPTARIF"))){
+				arg = extr_arg(arg, 4);
+				if(strncmp(ctx->values.OPTARIF, arg, 4)){
+					memcpy(ctx->values.OPTARIF, arg, 4);
+					sprintf(val, "%4s", arg);
+					if(debug)
+						printf("OPTARIF : '%s'\n", val);
+					sprintf(l, "%s/values/OPTARIF", ctx->topic);
+
 					papub( l, strlen(val), val, 1 );
 				}
 			}
