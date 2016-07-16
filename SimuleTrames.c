@@ -8,6 +8,8 @@
  *
  * Compilation :
 gcc -Wall SimuleTrames.c -o SimuleTrames
+ * or
+gcc -DSTRESS=10000 -Wall SimuleTrames.c -o SimuleTrames
  *
  * Copyright 2015 Laurent Faillie
  *
@@ -23,6 +25,7 @@ gcc -Wall SimuleTrames.c -o SimuleTrames
  *
  *	23/08/2015 - v1		LF - First version
  *	22/10/2015 - v1.1 	LF - Add some fields + conditionnaly compile production frame
+ *	16/07/2016 - v1.2	LF - w/ STRESS set, usleep replace sleep to flood the network
  */
 
 #include <fcntl.h>
@@ -34,6 +37,9 @@ gcc -Wall SimuleTrames.c -o SimuleTrames
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
+#ifdef STRESS
+#include <unistd.h>
+#endif
 
 #define FCONSO "/tmp/conso"
 #define FPROD "/tmp/prod"
@@ -100,7 +106,11 @@ int main(){
 		fflush( fdp );
 #endif
 
+#ifdef STRESS
+		usleep(STRESS);
+#else
 		sleep(1);
+#endif
 	}
 	return 0;
 }
