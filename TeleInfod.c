@@ -38,6 +38,8 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *		25/08/2015 - v2.0 LF - Add monitoring period
  *		22/10/2015 - v2.1 LF - Improve Mosquitto handling
  *		- Add fields PTEC, IMAX, ISOUSC, HHPHC, OPTARIF
+ *		21/03/2017 - v2.2 LF - in verbose mode, display when new frame arrives
+ *		25/07/2017 - v2.3 LF - Add a message when we are waiting for frames
  */
 
 #include <stdio.h>
@@ -51,13 +53,16 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #include <pthread.h>
 #include <signal.h>
 
+#include <time.h>
+extern char *ctime_r (const time_t *timep, char *buf); /* Not in C99 standard but needed in multi-threaded env */
+
 #ifdef USE_MOSQUITTO
 #	include <mosquitto.h>
 #elif defined(USE_PAHO)
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "2.1"
+#define VERSION "2.3"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -318,6 +323,9 @@ void *process_flow(void *actx){
 			exit(EXIT_FAILURE);
 		}
 
+		if(debug)
+			printf("*d* Waiting for beginning of a frame for '%s'\n", ctx->port);
+
 		while(fgets(l, MAXLINE, ftrame))	/* Wait 'till the beginning of the trame */
 			if(!strncmp(l,"ADCO",4))
 				break;
@@ -325,6 +333,9 @@ void *process_flow(void *actx){
 			fclose(ftrame);
 			break;
 		}
+
+		if(debug)
+			printf("*d* Let's for '%s'\n", ctx->port);
 
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
@@ -342,6 +353,14 @@ void *process_flow(void *actx){
 					strcat(l,"\n}\n");
 
 					papub( ctx->sumtopic, strlen(l), l, 1 );
+				}
+
+				if(debug){
+					time_t t;
+					char buf[26];
+
+					time( &t );
+					printf("New frame %s : %s", ctx->topic, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
 				}
 
 				if( cfg.delay )	/* existing only if we have to wait */
@@ -479,7 +498,9 @@ void *process_flow(void *actx){
 					sprintf(val, "%d", v);
 					papub( l, strlen(val), val, 1 );
 				}
-			}
+			} else if((arg = striKWcmp(l,"MOTD"))){	/* nothing to do, only to avoid uneeded message if debug is enabled */
+			} else if(debug)
+				printf(">>> Ignored : '%.4s'\n", l);
 		}
 		if(feof(ftrame)){	/* Stream finished, we have to leave */
 			fclose(ftrame);
