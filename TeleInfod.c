@@ -37,9 +37,11 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *					-------
  *		25/08/2015 - v2.0 LF - Add monitoring period
  *		22/10/2015 - v2.1 LF - Improve Mosquitto handling
- *		- Add fields PTEC, IMAX, ISOUSC, HHPHC, OPTARIF
+ *				- Add fields PTEC, IMAX, ISOUSC, HHPHC, OPTARIF
  *		21/03/2017 - v2.2 LF - in verbose mode, display when new frame arrives
  *		25/07/2017 - v2.3 LF - Add a message when we are waiting for frames
+ *		10/09/2017 - v2.4 LF - Add -dd for a better debugging
+ *				- Add HHPHC in summary
  */
 
 #include <stdio.h>
@@ -62,7 +64,7 @@ extern char *ctime_r (const time_t *timep, char *buf); /* Not in C99 standard bu
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "2.3"
+#define VERSION "2.4"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -335,16 +337,18 @@ void *process_flow(void *actx){
 		}
 
 		if(debug)
-			printf("*d* Let's for '%s'\n", ctx->port);
+			printf("*d* Let's go for '%s'\n", ctx->port);
 
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
+			if(debug > 1)
+				printf(l);
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
 					/* publish summary */
 				if(!cfg.period){	/* No period specified, sending actual values */
 					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->values.PAPP, ctx->values.IINST );
 					if(ctx->values.HCHC){
 						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d,\n\"HHPHC\": %c", ctx->values.HCHC, ctx->values.HCHP, ctx->values.HHPHC ? ctx->values.HHPHC:' ');
 					}
 					if(ctx->values.BASE){
 						char *t = l + strlen(l);
@@ -360,7 +364,7 @@ void *process_flow(void *actx){
 					char buf[26];
 
 					time( &t );
-					printf("New frame %s : %s", ctx->topic, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
+					printf("*d* New frame %s : %s", ctx->topic, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
 				}
 
 				if( cfg.delay )	/* existing only if we have to wait */
@@ -372,7 +376,7 @@ void *process_flow(void *actx){
 						ctx->max.PAPP = ctx->values.PAPP;
 
 				if(debug)
-					printf("Power : '%d'\n", ctx->values.PAPP);
+					printf("*d* Power : '%d'\n", ctx->values.PAPP);
 				sprintf(l, "%s/values/PAPP", ctx->topic);
 				sprintf(val, "%d", ctx->values.PAPP);
 				papub( l, strlen(val), val, 0 );
@@ -383,7 +387,7 @@ void *process_flow(void *actx){
 						ctx->max.IINST = ctx->values.IINST;
 
 				if(debug)
-					printf("Intensity : '%d'\n", ctx->values.IINST);
+					printf("*d* Intensity : '%d'\n", ctx->values.IINST);
 				sprintf(l, "%s/values/IINST", ctx->topic);
 				sprintf(val, "%d", ctx->values.IINST);
 				papub( l, strlen(val), val, 0 );
@@ -397,7 +401,7 @@ void *process_flow(void *actx){
 
 					if(ctx->values.HCHC){	/* forget the 1st run */
 						if(debug)
-							printf("Cnt HC : '%d'\n", diff);
+							printf("*d* Cnt HC : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHCd", ctx->topic);
 						sprintf(val, "%d", diff);
 
@@ -418,7 +422,7 @@ void *process_flow(void *actx){
 
 					if(ctx->values.HCHP){
 						if(debug)
-							printf("Cnt HP : '%d'\n", diff);
+							printf("*d* Cnt HP : '%d'\n", diff);
 						sprintf(l, "%s/values/HCHPd", ctx->topic);
 						sprintf(val, "%d", diff);
 
@@ -440,7 +444,7 @@ void *process_flow(void *actx){
 
 					if(ctx->values.BASE){
 						if(debug)
-							printf("Cnt BASE : '%d'\n", diff);
+							printf("*d* Cnt BASE : '%d'\n", diff);
 						sprintf(l, "%s/values/BASEd", ctx->topic);
 						sprintf(val, "%d", diff);
 
@@ -458,7 +462,7 @@ void *process_flow(void *actx){
 					memcpy(ctx->values.PTEC, arg, 4);
 					sprintf(val, "%4s", arg);
 					if(debug)
-						printf("PTEC : '%s'\n", val);
+						printf("*d* PTEC : '%s'\n", val);
 					sprintf(l, "%s/values/PTEC", ctx->topic);
 
 					papub( l, strlen(val), val, 1 );
@@ -485,7 +489,7 @@ void *process_flow(void *actx){
 					memcpy(ctx->values.OPTARIF, arg, 4);
 					sprintf(val, "%4s", arg);
 					if(debug)
-						printf("OPTARIF : '%s'\n", val);
+						printf("*d* OPTARIF : '%s'\n", val);
 					sprintf(l, "%s/values/OPTARIF", ctx->topic);
 
 					papub( l, strlen(val), val, 1 );
@@ -543,14 +547,15 @@ int main(int ac, char **av){
 					"Known options are :\n"
 					"\t-h : this online help\n"
 					"\t-d : enable debug messages\n"
+					"\t-dd : enable debug messages and display frame\n"
 					"\t-f<file> : read <file> for configuration\n"
 					"\t\t(default is '%s')\n",
 					basename(av[0]), VERSION, DEFAULT_CONFIGURATION_FILE
 				);
 				exit(EXIT_FAILURE);
-			} else if(!strcmp(av[i], "-d")){
-				debug = 1;
-				puts("TeleInfod (c) L.Faillie 2015");
+			} else if(!strcmp(av[i], "-d") || !strcmp(av[i], "-dd")){
+				debug = !strcmp(av[i], "-dd") ? 2:1;
+				puts("TeleInfod (c) L.Faillie 2015-17");
 				printf("%s (%s) starting ...\n", basename(av[0]), VERSION);
 			} else if(!strncmp(av[i], "-f", 2))
 				conf_file = av[i] + 2;
@@ -646,7 +651,7 @@ int main(int ac, char **av){
 
 					if(ctx->values.HCHC){
 						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d,\n\"HHPHC\": %c", ctx->values.HCHC, ctx->values.HCHP, ctx->values.HHPHC ? ctx->values.HHPHC:' ');
 					}
 					if(ctx->values.BASE){
 						char *t = l + strlen(l);
