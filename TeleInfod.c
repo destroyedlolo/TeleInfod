@@ -42,6 +42,7 @@ gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *		25/07/2017 - v2.3 LF - Add a message when we are waiting for frames
  *		10/09/2017 - v2.4 LF - Add -dd for a better debugging
  *				- Add HHPHC in summary
+ *		10/09/2017 - v2.5 LF - Add PTEC in summary
  */
 
 #include <stdio.h>
@@ -64,7 +65,7 @@ extern char *ctime_r (const time_t *timep, char *buf); /* Not in C99 standard bu
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "2.4"
+#define VERSION "2.5"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -345,10 +346,10 @@ void *process_flow(void *actx){
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
 					/* publish summary */
 				if(!cfg.period){	/* No period specified, sending actual values */
-					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->values.PAPP, ctx->values.IINST );
+					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \"%c\",\n\"PTEC\": \"%.4s\"", ctx->values.PAPP, ctx->values.IINST, ctx->values.HHPHC ? ctx->values.HHPHC:' ', ctx->values.PTEC);
 					if(ctx->values.HCHC){
 						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d,\n\"HHPHC\": %c", ctx->values.HCHC, ctx->values.HCHP, ctx->values.HHPHC ? ctx->values.HHPHC:' ');
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
 					}
 					if(ctx->values.BASE){
 						char *t = l + strlen(l);
@@ -460,7 +461,7 @@ void *process_flow(void *actx){
 				arg = extr_arg(arg, 4);
 				if(strncmp(ctx->values.PTEC, arg, 4)){
 					memcpy(ctx->values.PTEC, arg, 4);
-					sprintf(val, "%4s", arg);
+					sprintf(val, "%.4s", arg);
 					if(debug)
 						printf("*d* PTEC : '%s'\n", val);
 					sprintf(l, "%s/values/PTEC", ctx->topic);
@@ -646,12 +647,12 @@ int main(int ac, char **av){
 			sleep( cfg.period );
 			for(struct CSection *ctx = cfg.sections; ctx; ctx = ctx->next){
 				if(ctx->sumtopic){
-					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d", ctx->max.PAPP, ctx->max.IINST );
+					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \"%c\",\n\"PTEC\": \"%.4s\"", ctx->values.PAPP, ctx->values.IINST, ctx->values.HHPHC ? ctx->values.HHPHC:' ', ctx->values.PTEC);
 					ctx->max.PAPP = ctx->max.IINST = -1;
 
 					if(ctx->values.HCHC){
 						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d,\n\"HHPHC\": %c", ctx->values.HCHC, ctx->values.HCHP, ctx->values.HHPHC ? ctx->values.HHPHC:' ');
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.HCHC, ctx->values.HCHP);
 					}
 					if(ctx->values.BASE){
 						char *t = l + strlen(l);
