@@ -26,14 +26,15 @@ TeleInfod knows the following options :
 * *-f<file>* : loads <file> as configuration file
 
 # Configuration file :
-Without *–f* option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
+
+Without **–f** option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
 Following general directives are known :
-* *Broker_Host=* where the Broker can be reached.
-Using moquitto library, only the hostname has to be provided (as “localhost”, “myhost.mydomain.tld” ).
-Using Paho, use an URL like tcp://<hostname>:port (as tcp://localhost:1883).
-* *Broker_Port=* the port to connect to (only when using Mosquitto library)
-* *Sample_Delay=* Delay b/w 2 samples (in seconds, default delay = 30s). Due to 3.4.xx kernel instability on multiple open()/close() of ttyS, it is advised to set this parameter to **0** which keep ttyS open and send data as much as provided.
-* *Monitoring_Period=* (in seconds, introduced in v2.0). Delay between 2 samples of a subscribing monitoring tool to '.../summary' topics (see bellow).
+* **Broker_Host=** where the Broker can be reached.
+Using moquitto library, only the hostname has to be provided (as “*localhost*”, “*myhost.mydomain.tld*” ).
+Using Paho, use an URL like tcp://<hostname>:port (as *tcp://localhost:1883*).
+* **Broker_Port=** the port to connect to (only when using Mosquitto library)
+* **Sample_Delay=** Delay b/w 2 samples (in seconds, default delay = 30s). Due to 3.4.xx kernel instability on multiple open()/close() of ttyS, it is advised to set this parameter to **0** which keep ttyS open and send data as much as provided.
+* **Monitoring_Period=** (in seconds, introduced in v2.0). Daily between 2 samples of a subscribing monitoring tool to '*.../summary*' topics (see bellow).
 If unset or null, actual values are sent as previously.
 If set, maximum values read during the period is sent, and additional fields are added for counters
 
