@@ -1,11 +1,11 @@
 **TeleInfod** is a daemon that publishes electricity smart meters “*TéléInformation*” data to a **MQTT Broker**.
 
-#Requirements :#
+# Requirements :
 * A smart meter providing “TéléInformation” data as a serial flow (information about a DIY level converter for BananaPI can be found on [my web site](http://destroyedlolo.info/BananaPI/TeleInformation/) - French only -)
 * MQTT broker (i.e [Mosquitto](http://mosquitto.org/) )
 * Even if TeleInfod can be compiled to use Mosquitto’s own library, it is strongly advised to use [Paho](http://eclipse.org/paho/) as MQTT communication layer.
 
-#Installation :#
+# Installation :
 * Get TeleInfod.c and put it in a temporary directory
 * If you want to use MOSQUITTO’s own library :
 	* Install MOSQUITTO :)
@@ -20,12 +20,12 @@
     gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 ```
 
-#Launch options :#
+# Launch options :
 TeleInfod knows the following options :
 * *-d* : verbose output
 * *-f<file>* : loads <file> as configuration file
 
-#Configuration file :#
+# Configuration file :
 Without *–f* option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
 Following general directives are known :
 * *Broker_Host=* where the Broker can be reached.
@@ -61,10 +61,10 @@ In the case above, the following tree will be created :
 * */TeleInfo/Production/summary* – concatenation of all values above in *JSON* format. This value is “*retained*”, meaning the broker will reply immediately with last values sent. This topic is mostly used to feed monitoring tools (like my very own **Domestik**) to graph some trends, without having to wait for fresh data. Whereas “Values” topics aim to push/refresh actual data on “live” dashboard.
 Each section runs in its own thread, so will not block others if the data line doesn’t send anything.
 
-##Conversion Mode##
+## Conversion Mode
 Following *Mode=* are reconized :
 
-###STANDARD_PCONV###
+### STANDARD_PCONV
 
 Convert linky *Standard* frame to historic compatible one, for producer.
 
