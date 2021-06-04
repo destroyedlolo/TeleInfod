@@ -147,7 +147,9 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	const char *name;		/* help to have understandable error messages */
 	pthread_t thread;
 	const char *port;		/* Where to read */
-	const char *topic;		/* Broker's topic */
+	const char *topic;		/* main topic */
+	const char *cctopic;	/* Converted Customer topic */
+	const char *cptopic;	/* Converted Producer topic */
 	char *sumtopic;			/* Summary topic */
 	bool standard;			/* true : standard frame / false : historic frame */
 	union figures values;	/* actual values */
@@ -207,6 +209,7 @@ void read_configuration( const char *fch){
 			memset(n, 0, sizeof(struct CSection));	/* Clear all fields to help to generate the summary */
 			assert( (n->name = strdup( removeLF(l+1) )) );
 			n->port = n->topic = NULL;
+			n->cctopic = n->cptopic = NULL;
 
 			n->next = cfg.sections;	/* inserting in the list */
 			cfg.sections = n;
@@ -242,7 +245,7 @@ void read_configuration( const char *fch){
 			if(debug)
 				printf("Monitoring period : %d\n", cfg.period);
 
-		} else if((arg = striKWcmp(l,"Port="))){	/* It"s an historic section */
+		} else if((arg = striKWcmp(l,"Port="))){	/* It's an historic section */
 			if(!cfg.sections){
 				fputs("*F* Configuration issue : Port directive outside a section\n", stderr);
 				exit(EXIT_FAILURE);
@@ -259,6 +262,25 @@ void read_configuration( const char *fch){
 
 			if(debug)
 				printf("\tHistoric frame\n\tSerial port : '%s'\n", cfg.sections->port);
+
+		} else if((arg = striKWcmp(l,"SPort="))){	/* It's a standard section */
+			if(!cfg.sections){
+				fputs("*F* Configuration issue : SPort directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			if( cfg.sections->port ){
+				fputs("*F* Configuration issue : SPort directive used more than once in a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (cfg.sections->port = strdup( removeLF(arg) )) );
+			cfg.sections->standard = true;
+
+				/* Initialise maxes to invalid values */
+			cfg.sections->max.historic.PAPP = cfg.sections->max.historic.IINST = cfg.sections->max.historic.HCHC = cfg.sections->max.historic.HCHP = cfg.sections->max.historic.BASE = -1;
+
+			if(debug)
+				printf("\tStandard frame\n\tSerial port : '%s'\n", cfg.sections->port);
+
 		} else if((arg = striKWcmp(l,"Topic="))){
 			if(!cfg.sections){
 				fputs("*F* Configuration issue : Topic directive outside a section\n", stderr);
@@ -267,6 +289,24 @@ void read_configuration( const char *fch){
 			assert( (cfg.sections->topic = strdup( removeLF(arg) )) );
 			if(debug)
 				printf("\tTopic : '%s'\n", cfg.sections->topic);
+
+		} else if((arg = striKWcmp(l,"ConvCons="))){
+			if(!cfg.sections){
+				fputs("*F* Configuration issue : ConvCons directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (cfg.sections->cctopic = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tConverted customer topic : '%s'\n", cfg.sections->cctopic);
+
+		} else if((arg = striKWcmp(l,"ConvProd="))){
+			if(!cfg.sections){
+				fputs("*F* Configuration issue : ConvProd directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (cfg.sections->cptopic = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tConverted producer topic : '%s'\n", cfg.sections->cptopic);
 		}
 
 	}
@@ -392,7 +432,16 @@ int main(int ac, char **av){
 			exit(EXIT_FAILURE);
 		}
 
-		if( !s->standard ){	/* checks specifics to historic frames */
+		if( s->standard ){	/* check specifics for standard frames */
+			if( !s->topic && !s->cctopic && !s->cptopic ){
+				fprintf( stderr, "*F* at least Topic, ConvCons or ConvProd has to be provided for standard section '%s'\n", s->name );
+				exit(EXIT_FAILURE);
+			}
+			if( s->cctopic ){
+				fprintf( stderr, "*F* ConvCons is not yet implemented as per v3.0 in standard section '%s'\n", s->name );
+				exit(EXIT_FAILURE);
+			}
+		} else {	/* check specifics for historic frames */
 			if( !s->topic ){
 				fprintf( stderr, "*F* Topic is mandatory for historic section '%s'\n", s->name );
 				exit(EXIT_FAILURE);

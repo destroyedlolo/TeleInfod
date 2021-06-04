@@ -76,18 +76,19 @@ Each section runs in its own thread, so will not block others if the data line d
     *Consommation
     SPort=/dev/ttyS3
     Topic=TeleInfo/Consommation
-    ConvCons=TeleInfo/HistConso/
-    ConvProd=TeleInfo/HistProd/
+    ConvCons=TeleInfo/HistConso
+    ConvProd=TeleInfo/HistProd
 ```
 
 Where
 * **SPort=** path to the serial port to use (which has to be configured before launching TeleInfod)
 * **Topic=** Root of the topic tree where to expose data with "standards" labels
+(for *standard* frame, main topic is optional, as long as ConvCons and/or ConvProd is present)
 
 And in addition 
 
 * **ConvProd=** convert standard data to historic's name for producer in order to stay compatible with ancien software
-* **ConvCons=** convert standard data to historic's name for consummer in order to stay compatible with ancien software ( *not yet supported as per 3.0* )
+* **ConvCons=** convert standard data to historic's name for consumer in order to stay compatible with ancient software ( *not yet supported as per 3.0* )
 
 ### ConvCons conversion
 
