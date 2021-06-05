@@ -426,6 +426,11 @@ int main(int ac, char **av){
 		exit(EXIT_FAILURE);
 	}
 
+	if(debug){
+		printf("Sanity checks : ");
+		fflush( stdout );
+	}
+
 	for( ; s; s = s->next ){
 		if( !s->port ){
 			fprintf( stderr, "*F* No port defined for section '%s'\n", s->name );
@@ -437,8 +442,8 @@ int main(int ac, char **av){
 				fprintf( stderr, "*F* at least Topic, ConvCons or ConvProd has to be provided for standard section '%s'\n", s->name );
 				exit(EXIT_FAILURE);
 			}
-			if( s->cctopic ){
-				fprintf( stderr, "*F* ConvCons is not yet implemented as per v3.0 in standard section '%s'\n", s->name );
+			if( s->cctopic || s->topic ){
+				fprintf( stderr, "*F* ConvCons and topic are not yet implemented as per v3.0 in standard section '%s'\n", s->name );
 				exit(EXIT_FAILURE);
 			}
 		} else {	/* check specifics for historic frames */
@@ -448,6 +453,9 @@ int main(int ac, char **av){
 			}
 		}
 	}
+
+	if(debug)
+		puts("PASSED\n");
 
 	exit(EXIT_SUCCESS);
 }
