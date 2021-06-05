@@ -370,6 +370,220 @@ int papub( const char *topic, int length, void *payload, int retained ){	/* Cust
 	 * Processing
 	 */
 
+void *process_historic(void *actx){
+	struct CSection *ctx = actx;	/* Only to avoid zillions of cast */
+	FILE *ftrame;
+	char l[MAXLINE];
+	char *arg;
+	char val[12];
+
+	assert( (ctx->sumtopic = malloc( strlen(ctx->topic)+9 )) );	/* + "/summary" + 1 */
+	strcpy( ctx->sumtopic, ctx->topic );
+	strcat( ctx->sumtopic, "/summary" );
+
+	if(debug)
+		printf("Launching a processing flow for '%s'\n", ctx->topic);
+
+	for(;;){
+		if(!(ftrame = fopen( ctx->port, "r" ))){
+			perror(ctx->port);
+			exit(EXIT_FAILURE);
+		}
+
+		if(debug)
+			printf("*d* Waiting for beginning of a frame for '%s'\n", ctx->port);
+
+		while(fgets(l, MAXLINE, ftrame))	/* Wait 'till the beginning of the trame */
+			if(!strncmp(l,"ADCO",4))
+				break;
+		if(feof(ftrame)){
+			fclose(ftrame);
+			break;
+		}
+
+		if(debug)
+			printf("*d* Let's go for '%s'\n", ctx->port);
+
+		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
+			if(debug > 1)
+				printf(l);
+			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
+					/* publish summary */
+				if(!cfg.period){	/* No period specified, sending actual values */
+					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \"%c\",\n\"PTEC\": \"%.4s\"", ctx->values.historic.PAPP, ctx->values.historic.IINST, ctx->values.historic.HHPHC ? ctx->values.historic.HHPHC:' ', ctx->values.historic.PTEC);
+					if(ctx->values.historic.HCHC){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.historic.HCHC, ctx->values.historic.HCHP);
+					}
+					if(ctx->values.historic.BASE){
+						char *t = l + strlen(l);
+						sprintf(t, ",\n\"BASE\": %d", ctx->values.historic.BASE);
+					}
+					strcat(l,"\n}\n");
+
+					papub( ctx->sumtopic, strlen(l), l, 1 );
+				}
+
+				if(debug){
+					time_t t;
+					char buf[26];
+
+					time( &t );
+					printf("*d* New frame %s : %s", ctx->topic, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
+				}
+
+				if( cfg.delay )	/* existing only if we have to wait */
+					break;
+			} else if((arg = striKWcmp(l,"PAPP"))){
+				ctx->values.historic.PAPP = atoi(extr_arg(arg,5));
+
+				if(cfg.period && ctx->max.historic.PAPP < ctx->values.historic.PAPP )
+						ctx->max.historic.PAPP = ctx->values.historic.PAPP;
+
+				if(debug)
+					printf("*d* Power : '%d'\n", ctx->values.historic.PAPP);
+				sprintf(l, "%s/values/PAPP", ctx->topic);
+				sprintf(val, "%d", ctx->values.historic.PAPP);
+				papub( l, strlen(val), val, 0 );
+			} else if((arg = striKWcmp(l,"IINST"))){
+				ctx->values.historic.IINST = atoi(extr_arg(arg,3));
+
+				if(cfg.period && ctx->max.historic.IINST < ctx->values.historic.IINST )
+						ctx->max.historic.IINST = ctx->values.historic.IINST;
+
+				if(debug)
+					printf("*d* Intensity : '%d'\n", ctx->values.historic.IINST);
+				sprintf(l, "%s/values/IINST", ctx->topic);
+				sprintf(val, "%d", ctx->values.historic.IINST);
+				papub( l, strlen(val), val, 0 );
+			} else if((arg = striKWcmp(l,"HCHC"))){
+				int v = atoi(extr_arg(arg,9));
+				if(ctx->values.historic.HCHC != v){
+					int diff = v - ctx->values.historic.HCHC;
+					sprintf(l, "%s/values/HCHC", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 0 );
+
+					if(ctx->values.historic.HCHC){	/* forget the 1st run */
+						if(debug)
+							printf("*d* Cnt HC : '%d'\n", diff);
+						sprintf(l, "%s/values/HCHCd", ctx->topic);
+						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.historic.HCHC < diff )
+							ctx->max.historic.HCHC = diff;
+						papub( l, strlen(val), val, 0 );
+
+					}
+					ctx->values.historic.HCHC = v;
+				}
+			} else if((arg = striKWcmp(l,"HCHP"))){
+				int v = atoi(extr_arg(arg,9));
+				if(ctx->values.historic.HCHP != v){
+					int diff = v - ctx->values.historic.HCHP;
+					sprintf(l, "%s/values/HCHP", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 0 );
+
+					if(ctx->values.historic.HCHP){
+						if(debug)
+							printf("*d* Cnt HP : '%d'\n", diff);
+						sprintf(l, "%s/values/HCHPd", ctx->topic);
+						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.historic.HCHP < diff)
+							ctx->max.historic.HCHP = diff;
+
+						papub( l, strlen(val), val, 0 );
+
+					}
+					ctx->values.historic.HCHP = v;
+				}
+			} else if((arg = striKWcmp(l,"BASE"))){
+				int v = atoi(extr_arg(arg,9));
+				if(ctx->values.historic.BASE != v){
+					int diff = v - ctx->values.historic.BASE;
+					sprintf(l, "%s/values/BASE", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 0 );
+
+					if(ctx->values.historic.BASE){
+						if(debug)
+							printf("*d* Cnt BASE : '%d'\n", diff);
+						sprintf(l, "%s/values/BASEd", ctx->topic);
+						sprintf(val, "%d", diff);
+
+						if(cfg.period && ctx->max.historic.BASE < diff)
+							ctx->max.historic.BASE = diff;
+
+						papub( l, strlen(val), val, 0 );
+
+					}
+					ctx->values.historic.BASE = v;
+				}
+			} else if((arg = striKWcmp(l,"PTEC"))){
+				arg = extr_arg(arg, 4);
+				if(strncmp(ctx->values.historic.PTEC, arg, 4)){
+					memcpy(ctx->values.historic.PTEC, arg, 4);
+					sprintf(val, "%.4s", arg);
+					if(debug)
+						printf("*d* PTEC : '%s'\n", val);
+					sprintf(l, "%s/values/PTEC", ctx->topic);
+
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"ISOUSC"))){
+				int v = atoi(extr_arg(arg,2));
+				if(ctx->values.historic.ISOUSC != v){
+					ctx->values.historic.ISOUSC = v;
+					sprintf(l, "%s/values/ISOUSC", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"HHPHC"))){
+				char v = *extr_arg(arg,1);
+				if(ctx->values.historic.HHPHC != v){
+					ctx->values.historic.HHPHC = v;
+					sprintf(l, "%s/values/HHPHC", ctx->topic);
+					sprintf(val, "%c", v);
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"OPTARIF"))){
+				arg = extr_arg(arg, 4);
+				if(strncmp(ctx->values.historic.OPTARIF, arg, 4)){
+					memcpy(ctx->values.historic.OPTARIF, arg, 4);
+					sprintf(val, "%4s", arg);
+					if(debug)
+						printf("*d* OPTARIF : '%s'\n", val);
+					sprintf(l, "%s/values/OPTARIF", ctx->topic);
+
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"IMAX"))){
+				int v = atoi(extr_arg(arg,3));
+				if(ctx->values.historic.IMAX != v){
+					ctx->values.historic.IMAX = v;
+					sprintf(l, "%s/values/IMAX", ctx->topic);
+					sprintf(val, "%d", v);
+					papub( l, strlen(val), val, 1 );
+				}
+			} else if((arg = striKWcmp(l,"MOTD"))){	/* nothing to do, only to avoid uneeded message if debug is enabled */
+			} else if(debug)
+				printf(">>> Ignored : '%.4s'\n", l);
+		}
+		if(feof(ftrame)){	/* Stream finished, we have to leave */
+			fclose(ftrame);
+			break;
+		}
+		fclose(ftrame);
+
+
+		sleep( cfg.delay );
+	}
+
+	pthread_exit(0);
+}
+
 void handleInt(int na){
 	exit(EXIT_SUCCESS);
 }
@@ -456,6 +670,80 @@ int main(int ac, char **av){
 
 	if(debug)
 		puts("PASSED\n");
+
+		/* Connecting to the broker */
+#ifdef USE_MOSQUITTO
+	mosquitto_lib_init();
+	if(!(cfg.mosq = mosquitto_new(
+		"TeleInfod",	/* Id for this client */
+		true,			/* clean msg on exit */
+		NULL			/* No call backs */
+	))){
+		perror("Moquitto_new()");
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	}
+
+	switch( mosquitto_connect(cfg.mosq, cfg.Broker_Host, cfg.Broker_Port, BRK_KEEPALIVE) ){
+	case MOSQ_ERR_INVAL:
+		fputs("Invalid parameter for mosquitto_connect()\n", stderr);
+		mosquitto_destroy(cfg.mosq);
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	case MOSQ_ERR_ERRNO:
+		perror("mosquitto_connect()");
+		mosquitto_destroy(cfg.mosq);
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	default :
+		if(debug)
+			puts("Connected using Mosquitto library");
+	}
+#elif defined(USE_PAHO)
+	{
+		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+		conn_opts.reliable = 0;
+
+		MQTTClient_create( &cfg.client, cfg.Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+		MQTTClient_setCallbacks( cfg.client, NULL, connlost, msgarrived, NULL);
+
+		switch( MQTTClient_connect( cfg.client, &conn_opts) ){
+		case MQTTCLIENT_SUCCESS : 
+			break;
+		case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
+			exit(EXIT_FAILURE);
+		case 2 : fputs("Unable to connect : Identifier rejected\n", stderr);
+			exit(EXIT_FAILURE);
+		case 3 : fputs("Unable to connect : Server unavailable\n", stderr);
+			exit(EXIT_FAILURE);
+		case 4 : fputs("Unable to connect : Bad user name or password\n", stderr);
+			exit(EXIT_FAILURE);
+		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
+			exit(EXIT_FAILURE);
+		default :
+			fputs("Unable to connect : Unknown version\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+#endif
+
+	atexit(theend);
+
+		/* Creation of reading threads */
+	assert(!pthread_attr_init (&thread_attr));
+	assert(!pthread_attr_setdetachstate (&thread_attr, PTHREAD_CREATE_DETACHED));
+	for( s = cfg.sections; s; s = s->next ){
+		if( s->standard ){
+		} else {
+			if(pthread_create( &(s->thread), &thread_attr, process_historic, s) < 0){
+				fputs("*F* Can't create a processing thread\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+		/* Lets threads working */
+	pause();
 
 	exit(EXIT_SUCCESS);
 }
