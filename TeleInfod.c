@@ -817,6 +817,66 @@ void *process_standard(void *actx){
 					papub( l, strlen(val), val, 0 );
 				}
 
+ 			} else if((arg = striKWcmp(l,"SMAXSN-1"))){
+				ctx->values.standard.SMAXSN1 = atoi(extr_arg(arg + 15,5));
+
+				if(cfg.period && ctx->max.standard.SMAXSN1 < ctx->values.standard.SMAXSN1 )
+						ctx->max.standard.SMAXSN1 = ctx->values.standard.SMAXSN1;
+
+				if(debug)
+					printf("*d* Puissance max. soutirée (j-1) : '%d'\n", ctx->values.standard.SMAXSN1);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SMAXSN1", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SMAXSN1);
+					papub( l, strlen(val), val, 0 );
+				}
+
+ 			} else if((arg = striKWcmp(l,"SMAXSN"))){
+				ctx->values.standard.SMAXSN = atoi(extr_arg(arg + 15,5));
+
+				if(cfg.period && ctx->max.standard.SMAXSN < ctx->values.standard.SMAXSN )
+						ctx->max.standard.SMAXSN = ctx->values.standard.SMAXSN;
+
+				if(debug)
+					printf("*d* Puissance max. soutirée : '%d'\n", ctx->values.standard.SMAXSN);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SMAXSN", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SMAXSN);
+					papub( l, strlen(val), val, 0 );
+				}
+
+ 			} else if((arg = striKWcmp(l,"SMAXIN-1"))){
+				ctx->values.standard.SMAXIN1 = atoi(extr_arg(arg + 15,5));
+
+				if(cfg.period && ctx->max.standard.SMAXIN1 < ctx->values.standard.SMAXIN1 )
+						ctx->max.standard.SMAXIN1 = ctx->values.standard.SMAXIN1;
+
+				if(debug)
+					printf("*d* Puissance max. soutirée (j-1) : '%d'\n", ctx->values.standard.SMAXIN1);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SMAXIN1", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SMAXIN1);
+					papub( l, strlen(val), val, 0 );
+				}
+
+ 			} else if((arg = striKWcmp(l,"SMAXIN"))){
+				ctx->values.standard.SMAXIN = atoi(extr_arg(arg + 15,5));
+
+				if(cfg.period && ctx->max.standard.SMAXIN < ctx->values.standard.SMAXIN )
+						ctx->max.standard.SMAXIN = ctx->values.standard.SMAXIN;
+
+				if(debug)
+					printf("*d* Puissance max. soutirée : '%d'\n", ctx->values.standard.SMAXIN);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SMAXIN", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SMAXIN);
+					papub( l, strlen(val), val, 0 );
+				}
+
 			}
 		}
 
