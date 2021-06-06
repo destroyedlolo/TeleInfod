@@ -818,7 +818,7 @@ void *process_standard(void *actx){
 				}
 
  			} else if((arg = striKWcmp(l,"SMAXSN-1"))){
-				ctx->values.standard.SMAXSN1 = atoi(extr_arg(arg + 15,5));
+				ctx->values.standard.SMAXSN1 = atoi(extr_arg(arg + 14,5));
 
 				if(cfg.period && ctx->max.standard.SMAXSN1 < ctx->values.standard.SMAXSN1 )
 						ctx->max.standard.SMAXSN1 = ctx->values.standard.SMAXSN1;
@@ -833,7 +833,7 @@ void *process_standard(void *actx){
 				}
 
  			} else if((arg = striKWcmp(l,"SMAXSN"))){
-				ctx->values.standard.SMAXSN = atoi(extr_arg(arg + 15,5));
+				ctx->values.standard.SMAXSN = atoi(extr_arg(arg + 14,5));
 
 				if(cfg.period && ctx->max.standard.SMAXSN < ctx->values.standard.SMAXSN )
 						ctx->max.standard.SMAXSN = ctx->values.standard.SMAXSN;
@@ -848,7 +848,7 @@ void *process_standard(void *actx){
 				}
 
  			} else if((arg = striKWcmp(l,"SMAXIN-1"))){
-				ctx->values.standard.SMAXIN1 = atoi(extr_arg(arg + 15,5));
+				ctx->values.standard.SMAXIN1 = atoi(extr_arg(arg + 14,5));
 
 				if(cfg.period && ctx->max.standard.SMAXIN1 < ctx->values.standard.SMAXIN1 )
 						ctx->max.standard.SMAXIN1 = ctx->values.standard.SMAXIN1;
@@ -863,7 +863,7 @@ void *process_standard(void *actx){
 				}
 
  			} else if((arg = striKWcmp(l,"SMAXIN"))){
-				ctx->values.standard.SMAXIN = atoi(extr_arg(arg + 15,5));
+				ctx->values.standard.SMAXIN = atoi(extr_arg(arg + 14,5));
 
 				if(cfg.period && ctx->max.standard.SMAXIN < ctx->values.standard.SMAXIN )
 						ctx->max.standard.SMAXIN = ctx->values.standard.SMAXIN;
@@ -874,6 +874,36 @@ void *process_standard(void *actx){
 				if( ctx->topic ){	/* Sending main topic */
 					sprintf(l, "%s/values/SMAXIN", ctx->topic);
 					sprintf(val, "%d", ctx->values.standard.SMAXIN);
+					papub( l, strlen(val), val, 0 );
+				}
+
+ 			} else if((arg = striKWcmp(l,"UMOY1"))){
+				ctx->values.standard.UMOY1 = atoi(extr_arg(arg + 14,3));
+
+				if(cfg.period && ctx->max.standard.UMOY1 < ctx->values.standard.UMOY1 )
+						ctx->max.standard.UMOY1 = ctx->values.standard.UMOY1;
+
+				if(debug)
+					printf("*d* Tension moy. ph. 1 : '%d'\n", ctx->values.standard.UMOY1);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/UMOY1", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.UMOY1);
+					papub( l, strlen(val), val, 0 );
+				}
+
+ 			} else if((arg = striKWcmp(l,"RELAIS"))){
+				ctx->values.standard.RELAIS = atoi(extr_arg(arg,3));
+
+				if(cfg.period && ctx->max.standard.RELAIS < ctx->values.standard.RELAIS )
+						ctx->max.standard.RELAIS = ctx->values.standard.RELAIS;
+
+				if(debug)
+					printf("*d* Relais : '%d'\n", ctx->values.standard.RELAIS);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/RELAIS", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.RELAIS);
 					papub( l, strlen(val), val, 0 );
 				}
 
