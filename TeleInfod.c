@@ -644,21 +644,43 @@ void *process_standard(void *actx){
 					/*******
 					 * Counters
 					 *******/
-#if 0
+
  			} else if((arg = striKWcmp(l,"EAST"))){
 				int v = atoi(extr_arg(arg,9));
 
 				if( ctx->values.standard.EAST != v ){	/* Counter changed */
-					if( ctx->topic ){	/* Sending main topic */
-						int diff = v - ctx->values.standard.EAST;
+					int diff = v - ctx->values.standard.EAST;
+					ctx->values.standard.EAST = v;
 
+					if(debug)
+						printf("*d* Idx Energie Soutirée (EAST) : %d (%d)\n", v, diff);
+
+					if( ctx->topic ){	/* Sending main topic */
 						sprintf(l, "%s/values/EAST", ctx->topic);
 						sprintf(val, "%d", v);
 						papub( l, strlen(val), val, 0 );
-				
+			
+						if( diff ){
+							sprintf(l, "%s/values/EASTd", ctx->topic);
+							sprintf(val, "%d", diff);
+							papub( l, strlen(val), val, 0 );
+						}
 					}
-				}
+
+#if 0
+					if( ctx->cctopic ){	/* Converted for consummer */
+						sprintf(l, "%s/values/BASE", ctx->cctopic);
+						sprintf(val, "%d", v);
+						papub( l, strlen(val), val, 0 );
+					
+						if( diff ){
+							sprintf(l, "%s/values/EASTd", ctx->cptopic);
+							sprintf(val, "%d", diff);
+							papub( l, strlen(val), val, 0 );
+						}
+					}
 #endif
+				}
  			} else if((arg = striKWcmp(l,"EAIT"))){
 				int v = atoi(extr_arg(arg,9));
 
