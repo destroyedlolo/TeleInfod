@@ -148,9 +148,9 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	pthread_t thread;
 	const char *port;		/* Where to read */
 	const char *topic;		/* main topic */
+	char *sumtopic;			/* Summary topic */
 	const char *cctopic;	/* Converted Customer topic */
 	const char *cptopic;	/* Converted Producer topic */
-	char *sumtopic;			/* Summary topic */
 	bool standard;			/* true : standard frame / false : historic frame */
 	union figures values;	/* actual values */
 	union figures max;		/* Maximum values during monitoring period */
@@ -676,6 +676,18 @@ void *process_standard(void *actx){
 			
 						if( diff ){
 							sprintf(l, "%s/values/EAITd", ctx->topic);
+							sprintf(val, "%d", diff);
+							papub( l, strlen(val), val, 0 );
+						}
+					}
+
+					if( ctx->cptopic ){	/* Converted for producer */
+						sprintf(l, "%s/values/BASE", ctx->cptopic);
+						sprintf(val, "%d", v);
+						papub( l, strlen(val), val, 0 );
+					
+						if( diff ){
+							sprintf(l, "%s/values/EAITd", ctx->cptopic);
 							sprintf(val, "%d", diff);
 							papub( l, strlen(val), val, 0 );
 						}
