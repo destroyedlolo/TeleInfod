@@ -675,7 +675,7 @@ void *process_standard(void *actx){
 						papub( l, strlen(val), val, 0 );
 					
 						if( diff ){
-							sprintf(l, "%s/values/EASTd", ctx->cptopic);
+							sprintf(l, "%s/values/BASEd", ctx->cptopic);
 							sprintf(val, "%d", diff);
 							papub( l, strlen(val), val, 0 );
 						}
@@ -710,7 +710,7 @@ void *process_standard(void *actx){
 						papub( l, strlen(val), val, 0 );
 					
 						if( diff ){
-							sprintf(l, "%s/values/EAITd", ctx->cptopic);
+							sprintf(l, "%s/values/BASEd", ctx->cptopic);
 							sprintf(val, "%d", diff);
 							papub( l, strlen(val), val, 0 );
 						}
@@ -774,6 +774,49 @@ void *process_standard(void *actx){
 					papub( l, strlen(val), val, 0 );
 				}
 	
+ 			} else if((arg = striKWcmp(l,"SINSTS"))){
+				ctx->values.standard.SINSTS = atoi(extr_arg(arg,5));
+
+				if(cfg.period && ctx->max.standard.SINSTS < ctx->values.standard.SINSTS )
+						ctx->max.standard.SINSTS = ctx->values.standard.SINSTS;
+	
+				if(debug)
+					printf("*d* Energie Soutirée (SINSTS) : %d\n", ctx->values.standard.SINSTS);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SINSTS", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SINSTS);
+					papub( l, strlen(val), val, 0 );
+				}
+
+#if 0
+				if( ctx->cctopic ){	/* Converted for consummer */
+					sprintf(l, "%s/values/PAPP", ctx->cctopic);
+					sprintf(val, "%d", ctx->values.standard.SINSTS);
+					papub( l, strlen(val), val, 0 );
+				}
+#endif
+ 			} else if((arg = striKWcmp(l,"SINSTI"))){
+				ctx->values.standard.SINSTI = atoi(extr_arg(arg,5));
+
+				if(cfg.period && ctx->max.standard.SINSTI < ctx->values.standard.SINSTI )
+						ctx->max.standard.SINSTI = ctx->values.standard.SINSTI;
+	
+				if(debug)
+					printf("*d* Energie Injecte (SINSTI) : %d\n", ctx->values.standard.SINSTI);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/SINSTI", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.SINSTI);
+					papub( l, strlen(val), val, 0 );
+				}
+
+				if( ctx->cptopic ){	/* Converted for consummer */
+					sprintf(l, "%s/values/PAPP", ctx->cptopic);
+					sprintf(val, "%d", ctx->values.standard.SINSTI);
+					papub( l, strlen(val), val, 0 );
+				}
+
 			}
 		}
 
