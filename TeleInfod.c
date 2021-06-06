@@ -767,6 +767,12 @@ void *process_standard(void *actx){
 					sprintf(val, "%d", ctx->values.standard.PCOUP);
 					papub( l, strlen(val), val, 0 );
 				}
+
+				if( ctx->cptopic ){	/* Sending main topic */
+					sprintf(l, "%s/values/ISOUSC", ctx->cptopic);
+					sprintf(val, "%d", ctx->values.standard.IRMS1 / 200);
+					papub( l, strlen(val), val, 0 );
+				}
 	
 			}
 		}
