@@ -92,11 +92,15 @@ And in addition
 
 ### ConvCons conversion
 
+In historic mode, the mode for a producer counter is "BASE".
+Consequently, only following value are meaningful.
+
 Field name | Standard | converted topic
 -----------|----------|-----
 *Puissance app. Instantanée injectée* | **SINSTI** | .../values/**PAPP**
 *Courant efficace* | **IRMS1** | .../values/**IINST**
 *Energie active injectée totale* | **EAIT** | .../values/**BASE**
+*Puissance app. max. injectée n* | **SMAXIN** | .../values/**IMAX** (/200)
 
 ---
 

@@ -382,7 +382,7 @@ void *process_historic(void *actx){
 	strcat( ctx->sumtopic, "/summary" );
 
 	if(debug)
-		printf("Launching a processing flow for '%s'\n", ctx->topic);
+		printf("Launching a processing historic for '%s'\n", ctx->name);
 
 	for(;;){
 		if(!(ftrame = fopen( ctx->port, "r" ))){
@@ -402,7 +402,7 @@ void *process_historic(void *actx){
 		}
 
 		if(debug)
-			printf("*d* Let's go for '%s'\n", ctx->port);
+			printf("*d* Let's go with '%s'\n", ctx->port);
 
 		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
 			if(debug > 1)
@@ -429,10 +429,10 @@ void *process_historic(void *actx){
 					char buf[26];
 
 					time( &t );
-					printf("*d* New frame %s : %s", ctx->topic, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
+					printf("*d* New frame %s : %s", ctx->name, ctime_r( &t, buf));	/* ctime_r in not in C99 standard but is safer in multi-threaded environment */
 				}
 
-				if( cfg.delay )	/* existing only if we have to wait */
+				if( cfg.delay )	/* existing only if a deplay b/w frame is in place */
 					break;
 			} else if((arg = striKWcmp(l,"PAPP"))){
 				ctx->values.historic.PAPP = atoi(extr_arg(arg,5));
@@ -510,6 +510,7 @@ void *process_historic(void *actx){
 					if(ctx->values.historic.BASE){
 						if(debug)
 							printf("*d* Cnt BASE : '%d'\n", diff);
+
 						sprintf(l, "%s/values/BASEd", ctx->topic);
 						sprintf(val, "%d", diff);
 
@@ -571,13 +572,126 @@ void *process_historic(void *actx){
 			} else if(debug)
 				printf(">>> Ignored : '%.4s'\n", l);
 		}
+
 		if(feof(ftrame)){	/* Stream finished, we have to leave */
 			fclose(ftrame);
 			break;
 		}
+
+			/* Reaching here if deplay in place */
 		fclose(ftrame);
+		sleep( cfg.delay );
+	}
 
+	pthread_exit(0);
+}
 
+void *process_standard(void *actx){
+	struct CSection *ctx = actx;	/* Only to avoid zillions of cast */
+	FILE *ftrame;
+	char l[MAXLINE];
+	char *arg;
+	char val[12];
+
+	if( ctx->topic ){
+		assert( (ctx->sumtopic = malloc( strlen(ctx->topic)+9 )) );	/* + "/summary" + 1 */
+		strcpy( ctx->sumtopic, ctx->topic );
+		strcat( ctx->sumtopic, "/summary" );
+	}
+
+	if(debug)
+		printf("Launching a processing standard for '%s'\n", ctx->name);
+
+	for(;;){
+		if(!(ftrame = fopen( ctx->port, "r" ))){
+			perror(ctx->port);
+			exit(EXIT_FAILURE);
+		}
+
+		if(debug)
+			printf("*d* Waiting for beginning of a frame for '%s'\n", ctx->port);
+
+		while(fgets(l, MAXLINE, ftrame))	/* Wait 'till the beginning of the trame */
+			if(!strncmp(l,"ADSC",4))
+				break;
+		if(feof(ftrame)){
+			fclose(ftrame);
+			break;
+		}
+
+		if(debug)
+			printf("*d* Let's go with '%s'\n", ctx->port);
+
+		while(fgets(l, MAXLINE, ftrame)){	/* Read payloads */
+			if(debug > 1)
+				printf(l);
+
+			if((arg = striKWcmp(l,"ADSC"))){	/* New frame */
+				if(debug){
+					time_t t;
+					char buf[26];
+
+					time( &t );
+					printf("*d* New frame %s : %s", ctx->name, ctime_r( &t, buf));
+				}
+
+					/* Send summarry */
+
+					/* existing only if a deplay b/w frame is in place */
+				if( cfg.delay )
+					break;
+
+					/*******
+					 * Counters
+					 *******/
+#if 0
+ 			} else if((arg = striKWcmp(l,"EAST"))){
+				int v = atoi(extr_arg(arg,9));
+
+				if( ctx->values.standard.EAST != v ){	/* Counter changed */
+					if( ctx->topic ){	/* Sending main topic */
+						int diff = v - ctx->values.standard.EAST;
+
+						sprintf(l, "%s/values/EAST", ctx->topic);
+						sprintf(val, "%d", v);
+						papub( l, strlen(val), val, 0 );
+				
+					}
+				}
+#endif
+ 			} else if((arg = striKWcmp(l,"EAIT"))){
+				int v = atoi(extr_arg(arg,9));
+
+				if( ctx->values.standard.EAIT != v ){	/* Counter changed */
+					int diff = v - ctx->values.standard.EAIT;
+					ctx->values.standard.EAIT = v;
+
+					if(debug)
+						printf("*d* Idx Energie Injectée (EAIT) : %d (%d)\n", v, diff);
+
+					if( ctx->topic ){	/* Sending main topic */
+						sprintf(l, "%s/values/EAIT", ctx->topic);
+						sprintf(val, "%d", v);
+						papub( l, strlen(val), val, 0 );
+			
+						if( diff ){
+							sprintf(l, "%s/values/EAITd", ctx->topic);
+							sprintf(val, "%d", diff);
+							papub( l, strlen(val), val, 0 );
+						}
+					}
+				}
+
+			}
+		}
+
+		if(feof(ftrame)){	/* Stream finished, we have to leave */
+			fclose(ftrame);
+			break;
+		}
+
+			/* Reaching here if deplay in place */
+		fclose(ftrame);
 		sleep( cfg.delay );
 	}
 
@@ -630,6 +744,7 @@ int main(int ac, char **av){
 			}
 		}
 	}
+
 	read_configuration( conf_file );
 
 		/* Sanity checks */
@@ -656,8 +771,8 @@ int main(int ac, char **av){
 				fprintf( stderr, "*F* at least Topic, ConvCons or ConvProd has to be provided for standard section '%s'\n", s->name );
 				exit(EXIT_FAILURE);
 			}
-			if( s->cctopic || s->topic ){
-				fprintf( stderr, "*F* ConvCons and topic are not yet implemented as per v3.0 in standard section '%s'\n", s->name );
+			if( s->cctopic ){
+				fprintf( stderr, "*F* ConvCons is not yet implemented as per v3.0 in standard section '%s'\n", s->name );
 				exit(EXIT_FAILURE);
 			}
 		} else {	/* check specifics for historic frames */
@@ -734,6 +849,10 @@ int main(int ac, char **av){
 	assert(!pthread_attr_setdetachstate (&thread_attr, PTHREAD_CREATE_DETACHED));
 	for( s = cfg.sections; s; s = s->next ){
 		if( s->standard ){
+			if(pthread_create( &(s->thread), &thread_attr, process_standard, s) < 0){
+				fputs("*F* Can't create a processing thread\n", stderr);
+				exit(EXIT_FAILURE);
+			}
 		} else {
 			if(pthread_create( &(s->thread), &thread_attr, process_historic, s) < 0){
 				fputs("*F* Can't create a processing thread\n", stderr);
