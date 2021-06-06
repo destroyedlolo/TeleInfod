@@ -737,6 +737,22 @@ void *process_standard(void *actx){
 					sprintf(val, "%d", ctx->values.standard.IRMS1);
 					papub( l, strlen(val), val, 0 );
 				}
+
+ 			} else if((arg = striKWcmp(l,"PREF"))){
+				ctx->values.standard.PREF = atoi(extr_arg(arg,2));
+
+				if(cfg.period && ctx->max.standard.PREF < ctx->values.standard.PREF )
+						ctx->max.standard.PREF = ctx->values.standard.PREF;
+
+				if(debug)
+					printf("*d* Puissance ref : '%d'\n", ctx->values.standard.PREF);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/PREF", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.PREF);
+					papub( l, strlen(val), val, 0 );
+				}
+
 			}
 		}
 
