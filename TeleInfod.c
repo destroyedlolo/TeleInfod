@@ -453,6 +453,7 @@ void *process_historic(void *actx){
 
 				if(debug)
 					printf("*d* Intensity : '%d'\n", ctx->values.historic.IINST);
+
 				sprintf(l, "%s/values/IINST", ctx->topic);
 				sprintf(val, "%d", ctx->values.historic.IINST);
 				papub( l, strlen(val), val, 0 );
@@ -716,6 +717,26 @@ void *process_standard(void *actx){
 					}
 				}
 
+ 			} else if((arg = striKWcmp(l,"IRMS1"))){
+				ctx->values.standard.IRMS1 = atoi(extr_arg(arg,3));
+
+				if(cfg.period && ctx->max.standard.IRMS1 < ctx->values.standard.IRMS1 )
+						ctx->max.standard.IRMS1 = ctx->values.standard.IRMS1;
+
+				if(debug)
+					printf("*d* Intensity : '%d'\n", ctx->values.standard.IRMS1);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/IRMS1", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.IRMS1);
+					papub( l, strlen(val), val, 0 );
+				}
+
+				if( ctx->cptopic ){	/* Sending main topic */
+					sprintf(l, "%s/values/IINST", ctx->cptopic);
+					sprintf(val, "%d", ctx->values.standard.IRMS1);
+					papub( l, strlen(val), val, 0 );
+				}
 			}
 		}
 
