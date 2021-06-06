@@ -753,6 +753,21 @@ void *process_standard(void *actx){
 					papub( l, strlen(val), val, 0 );
 				}
 
+ 			} else if((arg = striKWcmp(l,"PCOUP"))){
+				ctx->values.standard.PCOUP = atoi(extr_arg(arg,2));
+
+				if(cfg.period && ctx->max.standard.PCOUP < ctx->values.standard.PCOUP )
+						ctx->max.standard.PCOUP = ctx->values.standard.PCOUP;
+
+				if(debug)
+					printf("*d* Puissance coupure : '%d'\n", ctx->values.standard.PCOUP);
+
+				if( ctx->topic ){	/* Sending main topic */
+					sprintf(l, "%s/values/PCOUP", ctx->topic);
+					sprintf(val, "%d", ctx->values.standard.PCOUP);
+					papub( l, strlen(val), val, 0 );
+				}
+	
 			}
 		}
 
