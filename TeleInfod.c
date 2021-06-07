@@ -374,6 +374,33 @@ int papub( const char *topic, int length, void *payload, int retained ){	/* Cust
 	 * Processing
 	 */
 
+void publish_sum_historic( char *l, struct CSection *ctx ){
+	if(ctx->sumtopic){
+		sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \"%c\",\n\"PTEC\": \"%.4s\"",
+			ctx->values.historic.PAPP,
+			ctx->values.historic.IINST,
+			ctx->values.historic.HHPHC ? ctx->values.historic.HHPHC:' ',
+			ctx->values.historic.PTEC
+		);
+
+		if(ctx->values.historic.HCHC){
+			char *t = l + strlen(l);
+			sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", 
+				ctx->values.historic.HCHC,
+				ctx->values.historic.HCHP
+			);
+		}
+
+		if(ctx->values.historic.BASE){
+			char *t = l + strlen(l);
+			sprintf(t, ",\n\"BASE\": %d", ctx->values.historic.BASE);
+		}
+
+		strcat(l,"\n}\n");
+		papub( ctx->sumtopic, strlen(l), l, 1 );
+	}
+}
+
 void *process_historic(void *actx){
 	struct CSection *ctx = actx;	/* Only to avoid zillions of cast */
 	FILE *ftrame;
@@ -413,20 +440,8 @@ void *process_historic(void *actx){
 				printf(l);
 			if(!strncmp(l,"ADCO",4)){ /* Reaching the next one */
 					/* publish summary */
-				if(!cfg.period){	/* No period specified, sending actual values */
-					sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \"%c\",\n\"PTEC\": \"%.4s\"", ctx->values.historic.PAPP, ctx->values.historic.IINST, ctx->values.historic.HHPHC ? ctx->values.historic.HHPHC:' ', ctx->values.historic.PTEC);
-					if(ctx->values.historic.HCHC){
-						char *t = l + strlen(l);
-						sprintf(t, ",\n\"HCHC\": %d,\n\"HCHP\": %d", ctx->values.historic.HCHC, ctx->values.historic.HCHP);
-					}
-					if(ctx->values.historic.BASE){
-						char *t = l + strlen(l);
-						sprintf(t, ",\n\"BASE\": %d", ctx->values.historic.BASE);
-					}
-					strcat(l,"\n}\n");
-
-					papub( ctx->sumtopic, strlen(l), l, 1 );
-				}
+				if(!cfg.period)	/* No period specified, sending actual values */
+					publish_sum_historic( l, ctx );
 
 				if(debug){
 					time_t t;
@@ -1111,7 +1126,21 @@ int main(int ac, char **av){
 	}
 
 		/* Lets threads working */
-	pause();
+	signal(SIGINT, handleInt);
+	if(cfg.period){
+		char l[MAXLINE];
+		for(;;){
+			sleep( cfg.period );
+
+			for(struct CSection *ctx = cfg.sections; ctx; ctx = ctx->next){
+				if(ctx->standard){
+				} else 	/* Historic mode */
+					publish_sum_historic( l, ctx );
+			}
+		}
+	}
+
+	pause();	/* No summary to send : waiting for the end */
 
 	exit(EXIT_SUCCESS);
 }
