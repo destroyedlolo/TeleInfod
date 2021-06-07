@@ -106,6 +106,6 @@ Field name | Standard | converted topic
 
 Notez-bien : TeleInfod has been made to suit my needs. Consequently 
 - with *historic* frame, it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
-- with *standard* frame, it can only convert to producer compatible historic data.
+- it can only convert *standard* frame to producer compatible historic data (my own consumer linky is configured for historic frame as no added value that worths to by a new adapter : *don't hesitate to contribute*)
 	
 HELP ARE WELCOME TO COVER OTHER SITUATION.
