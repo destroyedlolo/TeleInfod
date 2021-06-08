@@ -60,4 +60,45 @@ In the case above, the following tree will be created :
 * */TeleInfo/Production/summary* – concatenation of all values above in *JSON* format. This value is “*retained*”, meaning the broker will reply immediately with last values sent. This topic is mostly used to feed monitoring tools (like my very own **Domestik**) to graph some trends, without having to wait for fresh data. Whereas “Values” topics aim to push/refresh actual data on “live” dashboard.
 Each section runs in its own thread, so will not block others if the data line doesn’t send anything.
 
-Notez-bien : TeleInfod has been made to suit my needs. Consequently it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
+## Section for Standard mode
+
+**SPort=** enable reading Standard frames, which been introduced by Linky.
+
+```
+    *Consommation
+    SPort=/dev/ttyS3
+    Topic=TeleInfo/Consommation
+    ConvCons=TeleInfo/HistConso
+    ConvProd=TeleInfo/HistProd
+```
+
+Where
+* **SPort=** path to the serial port to use (which has to be configured before launching TeleInfod)
+* **Topic=** Root of the topic tree where to expose data with "standards" labels
+(for *standard* frame, main topic is optional, as long as ConvCons and/or ConvProd is present)
+
+And in addition 
+
+* **ConvProd=** convert standard data to historic's name for producer in order to stay compatible with ancien software
+* **ConvCons=** convert standard data to historic's name for consumer in order to stay compatible with ancient software ( *not yet supported as per 3.0* )
+
+### ConvCons conversion
+
+In historic mode, the mode for a producer counter is "BASE".
+Consequently, only following value are meaningful.
+
+Field name | Standard | converted topic
+-----------|----------|-----
+*Puissance app. Instantanée injectée* | **SINSTI** | .../values/**PAPP**
+*Courant efficace* | **IRMS1** | .../values/**IINST**
+*Energie active injectée totale* | **EAIT** | .../values/**BASE**
+*Puissance app. max. injectée n* | **SMAXIN** | .../values/**IMAX** (/200)
+
+---
+
+Notez-bien : TeleInfod has been made to suit my needs. Consequently 
+- with *historic* frame, it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
+- it can only convert *standard* frame to producer compatible historic data (my own consumer linky is configured for historic frame as no added value that worths to by a new adapter : *don't hesitate to contribute*)
+	
+HELP ARE WELCOME TO COVER OTHER SITUATION.
+
