@@ -154,7 +154,9 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	const char *topic;		/* main topic */
 	char *sumtopic;			/* Summary topic */
 	const char *cctopic;	/* Converted Customer topic */
+	char *ccsumtopic;	/* Summary topic */
 	const char *cptopic;	/* Converted Producer topic */
+	char *cpsumtopic;	/* Summary topic */
 	bool standard;			/* true : standard frame / false : historic frame */
 	union figures values;	/* actual values */
 	union figures max;		/* Maximum values during monitoring period */
@@ -606,6 +608,32 @@ void *process_historic(void *actx){
 	pthread_exit(0);
 }
 
+void publish_sum_standard( char *l, struct CSection *ctx ){
+	if(ctx->sumtopic){
+		sprintf(l, "{\n\"EAST\": %d,\n\"EAIT\": %d,\n\"IRMS1\": %d,\n\"SINSTS\": %d,\n\"SINSTI\": %d,\n\"UMOY1\": %d,\n\"RELAIS\": %d\n}\n",
+			ctx->values.standard.EAST,
+			ctx->values.standard.EAIT,
+			ctx->values.standard.IRMS1,
+			ctx->values.standard.SINSTS,
+			ctx->values.standard.SINSTI,
+			ctx->values.standard.UMOY1,
+			ctx->values.standard.RELAIS
+		);
+
+		papub( ctx->sumtopic, strlen(l), l, 1 );
+	}
+
+	if(ctx->cpsumtopic){
+		sprintf(l, "{\n\"PAPP\": %d,\n\"IINST\": %d,\n\"HHPHC\": \" \",\n\"PTEC\": \"PROD\",\n\"BASE\": %d\n}\n",
+			ctx->values.standard.SINSTI,
+			ctx->values.standard.IRMS1,
+			ctx->values.standard.EAIT
+		);
+
+		papub( ctx->cpsumtopic, strlen(l), l, 1 );
+	}
+}
+
 void *process_standard(void *actx){
 	struct CSection *ctx = actx;	/* Only to avoid zillions of cast */
 	FILE *ftrame;
@@ -617,6 +645,18 @@ void *process_standard(void *actx){
 		assert( (ctx->sumtopic = malloc( strlen(ctx->topic)+9 )) );	/* + "/summary" + 1 */
 		strcpy( ctx->sumtopic, ctx->topic );
 		strcat( ctx->sumtopic, "/summary" );
+	}
+
+	if( ctx->cctopic ){
+		assert( (ctx->ccsumtopic = malloc( strlen(ctx->cctopic)+9 )) );	/* + "/summary" + 1 */
+		strcpy( ctx->ccsumtopic, ctx->cctopic );
+		strcat( ctx->ccsumtopic, "/summary" );
+	}
+
+	if( ctx->cptopic ){
+		assert( (ctx->cpsumtopic = malloc( strlen(ctx->cptopic)+9 )) );	/* + "/summary" + 1 */
+		strcpy( ctx->cpsumtopic, ctx->cptopic );
+		strcat( ctx->cpsumtopic, "/summary" );
 	}
 
 	if(debug)
@@ -656,6 +696,8 @@ void *process_standard(void *actx){
 				}
 
 					/* Send summarry */
+				if(!cfg.period)	/* No period specified, sending actual values */
+					publish_sum_standard( l, ctx );
 
 					/* existing only if a deplay b/w frame is in place */
 				if( cfg.delay )
@@ -694,7 +736,7 @@ void *process_standard(void *actx){
 						papub( l, strlen(val), val, 0 );
 					
 						if( diff ){
-							sprintf(l, "%s/values/BASEd", ctx->cptopic);
+							sprintf(l, "%s/values/BASEd", ctx->cctopic);
 							sprintf(val, "%d", diff);
 							papub( l, strlen(val), val, 0 );
 						}
@@ -1133,8 +1175,9 @@ int main(int ac, char **av){
 			sleep( cfg.period );
 
 			for(struct CSection *ctx = cfg.sections; ctx; ctx = ctx->next){
-				if(ctx->standard){
-				} else 	/* Historic mode */
+				if(ctx->standard)
+					publish_sum_standard( l, ctx );
+				else 	/* Historic mode */
 					publish_sum_historic( l, ctx );
 			}
 		}
