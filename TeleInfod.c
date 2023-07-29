@@ -10,7 +10,7 @@ gcc -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
  * if using PAHO (Asynchronous)
 gcc -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *
- * Copyright 2015-2021 Laurent Faillie
+ * Copyright 2015-2023 Laurent Faillie
  *
  * 		TeleInfod is covered by 
  *      Creative Commons Attribution-NonCommercial 3.0 License
@@ -46,6 +46,7 @@ gcc -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
  *					-------
  *		04/06/2021 - v3.0 LF - handly Linky's standard frame
  *							- remove c99 dependancies
+ *		29/07/2023 - v3.1 LF - Publish date as well for standard frame
  */
 
 #include <stdio.h>
@@ -59,6 +60,7 @@ gcc -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include <time.h>
 
@@ -68,7 +70,7 @@ gcc -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "3.0"
+#define VERSION "3.1"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -641,7 +643,7 @@ void *process_standard(void *actx){
 	char *arg;
 	char val[12];
 
-	if( ctx->topic ){
+	if( ctx->topic ){	/* Build summary topics */
 		assert( (ctx->sumtopic = malloc( strlen(ctx->topic)+9 )) );	/* + "/summary" + 1 */
 		strcpy( ctx->sumtopic, ctx->topic );
 		strcat( ctx->sumtopic, "/summary" );
@@ -988,6 +990,26 @@ void *process_standard(void *actx){
 					papub( l, strlen(val), val, 0 );
 				}
 
+			} else if((arg = striKWcmp(l,"DATE"))){
+				if(*arg == '\t') arg++;	/* Skip heading tab */
+
+				char *end = strchr(arg, '\t');
+				if((end - arg) == 13){
+					char t[26];
+					sprintf(t, "20%c%c-%c%c-%c%cT%c%c:%c%c:%c%c+0%c:00", 
+						arg[1],arg[2], arg[3],arg[4], arg[5],arg[6],
+						arg[7],arg[8], arg[9],arg[10], arg[11],arg[12],
+						(toupper(*arg) == 'H') ? '1':'2'
+					);
+
+					sprintf(l, "%s/values/Date", ctx->topic);
+					papub( l, strlen(t), t, 0 );
+
+					if(debug)
+						printf("*d* Date : '%s'\n", t);
+				} else if(debug){
+					printf("*E* horodates incorrect\n");
+				}
 			}
 		}
 
@@ -1040,7 +1062,7 @@ int main(int ac, char **av){
 				exit(EXIT_FAILURE);
 			} else if(!strcmp(av[i], "-d") || !strcmp(av[i], "-dd")){
 				debug = !strcmp(av[i], "-dd") ? 2:1;
-				puts("TeleInfod (c) L.Faillie 2015-21");
+				puts("TeleInfod (c) L.Faillie 2015-23");
 				printf("%s (%s) starting ...\n", basename(av[0]), VERSION);
 			} else if(!strncmp(av[i], "-f", 2))
 				conf_file = av[i] + 2;
