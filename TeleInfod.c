@@ -1002,9 +1002,11 @@ void *process_standard(void *actx){
 						(toupper(*arg) == 'H') ? '1':'2'
 					);
 
-					sprintf(l, "%s/values/Date", ctx->topic);
-					papub( l, strlen(t), t, 0 );
-
+					if( ctx->topic ){
+						sprintf(l, "%s/values/Date", ctx->topic);
+						papub( l, strlen(t), t, 0 );
+					}
+	
 					if(debug)
 						printf("*d* Date : '%s'\n", t);
 				} else if(debug){
