@@ -97,8 +97,9 @@ Field name | Standard | converted topic
 ---
 
 Notez-bien : TeleInfod has been made to suit my needs. Consequently 
-- with *historic* frame, it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
+- with *historic* frames, it handles up to now only *BASE* (i.e. for photovoltaic production), and “*Heure Creuse*” contracts. Contributions are obviously welcomed if you want to add others.
 - it can only convert *standard* frame to producer compatible historic data (my own consumer linky is configured for historic frame as no added value that worths to by a new adapter : *don't hesitate to contribute*)
+- with *standard* frames, `.../Values/Date` is published as per DATE field. It is converted to ISO 8601 format and the timezone is applied to replect Linky *DST*. As of 3.1, this timezone is hardcoded only for **France Metropolitain** (GMT+1).
 	
-HELP ARE WELCOME TO COVER OTHER SITUATION.
+HELP ARE WELCOME TO COVER OTHER SITUATIONS.
 
