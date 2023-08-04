@@ -5,10 +5,10 @@
  * 	Compilation
  *
  * if using MOSQUITTO (working as of v0.1 - Synchronous)
-gcc -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
+gcc -DUSE_MOSQUITTO TeleInfod.c -lpthread -lmosquitto -Wall -o TeleInfod
  *
  * if using PAHO (Asynchronous)
-gcc -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
+gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *
  * Copyright 2015-2023 Laurent Faillie
  *
@@ -88,7 +88,7 @@ char *removeLF(char *s){
 }
 
 char *striKWcmp( char *s, const char *kw ){
-/* compare string s against kw
+/* compares string s against kw
  * Return :
  * 	- remaining string if the keyword matches
  * 	- NULL if the keyword is not found
@@ -101,13 +101,21 @@ char *striKWcmp( char *s, const char *kw ){
 }
 
 char *extr_arg(char *s, int l){ 
-/* Extract an argument from TéléInfo trame 
+/* Extracts an argument from TéléInfo trame 
  *	s : argument string just after the token
  *	l : length of the argument
  */
 	s++;	/* Skip the leading space */
 	s[l]=0;
 	return s;
+}
+
+unsigned char char2int( const char *p ){
+/* Converts next 2 characters to an integer
+ */ 
+	unsigned char ret = (*p - '0')*10;
+	ret += *(++p) - '0';
+	return ret;
 }
 
 	/*
@@ -995,11 +1003,22 @@ void *process_standard(void *actx){
 
 				char *end = strchr(arg, '\t');
 				if((end - arg) == 13){
+
+						/* Looks for offset
+						 * timezone will NOT contains DST (but the linky is providing it)
+						 * timezone is in seconds with sign reversed.
+						 */
+					extern long timezone;
+					tzset();
+					long toffset = -timezone/60;
+					if(toupper(*arg) == 'E')
+						toffset += 60;
+					
 					char t[26];
-					sprintf(t, "20%c%c-%c%c-%c%cT%c%c:%c%c:%c%c+0%c:00", 
+					sprintf(t, "20%c%c-%c%c-%c%cT%c%c:%c%c:%c%c%+03ld:%02d", 
 						arg[1],arg[2], arg[3],arg[4], arg[5],arg[6],
 						arg[7],arg[8], arg[9],arg[10], arg[11],arg[12],
-						(toupper(*arg) == 'H') ? '1':'2'
+						toffset/60, abs(toffset)%60
 					);
 
 					if( ctx->topic ){
