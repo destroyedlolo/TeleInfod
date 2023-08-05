@@ -54,6 +54,9 @@
 	/* Keep alive signal to the broker */
 #define BRK_KEEPALIVE 60
 
+	/* Maximum length of a line to be read */
+#define MAXLINE 1024
+
 	/* Shared objects */
 extern unsigned int debug;
 

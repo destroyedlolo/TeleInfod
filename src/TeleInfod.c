@@ -21,11 +21,19 @@
 #include <string.h>
 
 #include "Version.h"
+#include "Config.h"
 
 unsigned int debug = 0;
 
+void read_configuration( const char *fch){
+	FILE *f;
+	char l[MAXLINE];
+	char *arg;
+}
+
 int main(int ac, char **av){
-	
+	const char *conf_file = DEFAULT_CONFIGURATION_FILE;
+
 		/* reading arguments */
 	int opt;
 	while((opt = getopt(ac, av, "hdDf:")) != -1){
@@ -49,6 +57,12 @@ int main(int ac, char **av){
 				VERSION, COPYRIGHT, DEFAULT_CONFIGURATION_FILE
 			);
 			exit(EXIT_FAILURE);
+		case 'f':
+			conf_file = optarg;
+			break;
 		}
 	}
+
+	read_configuration( conf_file );
+
 }
