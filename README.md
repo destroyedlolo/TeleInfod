@@ -103,3 +103,8 @@ Notez-bien : TeleInfod has been made to suit my needs. Consequently
 	
 HELP ARE WELCOME TO COVER OTHER SITUATIONS.
 
+====
+
+# Reference
+
+- Linky and historic trames reference : **Enedis-NOI-CPT_54E**
