@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 
 #ifdef USE_MOSQUITTO
 #	include <mosquitto.h>
@@ -32,6 +33,7 @@
 unsigned int debug = 0;
 const char *Broker_Host;
 int Broker_Port;
+struct CSection *sections;
 
 #ifdef USE_MOSQUITTO
 struct mosquitto *mosq;
@@ -125,6 +127,23 @@ static void read_configuration( const char *fch){
 			if(debug)
 				printf("Broker port : %d\n", Broker_Port);
 #endif
+		} else if(*l == '*'){	/* New section */
+			struct CSection *n = malloc( sizeof(struct CSection) );
+			assert(n);
+
+			assert( (n->name = strdup( removeLF(l+1) )) );	/* Name */
+
+				/* Default value */
+			n->port = NULL;
+			n->standard = true;
+			n->topic = n->cctopic = n->cptopic = NULL;
+
+				/* Sections management */
+			n->next = sections;
+			sections = n;
+
+			if(debug)
+				printf("Entering section '%s'\n", n->name);
 		} else {
 			fprintf(stderr, "\nERROR line %u : \"%s\" is not a known configuration directive\n", ln, removeLF(l));
 			exit(EXIT_FAILURE);
@@ -168,6 +187,7 @@ int main(int ac, char **av){
 		}
 	}
 
+	sections = NULL;
 	read_configuration( conf_file );
 
 	if(debug)

@@ -18,17 +18,17 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdbool.h>
+
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	struct CSection *next;	/* Next section */
 	const char *name;		/* help to have understandable error messages */
 	pthread_t thread;
 	const char *port;		/* Where to read */
+	bool standard;			/* true : standard frames, false : historic */
 	const char *topic;		/* main topic */
 	const char *cctopic;	/* Converted Customer topic */
 	const char *cptopic;	/* Converted Producer topic */
-	char *sumtopic;			/* Summary topic */
-	char *ccsumtopic;		/* Converted customer Summary topic */
-	char *cpsumtopic;		/* Converted producer Summary topic */
 };
 
 #endif
