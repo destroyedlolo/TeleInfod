@@ -47,6 +47,7 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *		04/06/2021 - v3.0 LF - handle Linky's standard frame
  *							- remove c99 dependencies
  *		29/07/2023 - v3.1 LF - Publish date as well for standard frame
+ *		15/08/2024 - v3.2 LF - Add some securities
  */
 
 #include <stdio.h>
@@ -70,7 +71,7 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "3.1"
+#define VERSION "3.2"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -439,7 +440,7 @@ void *process_historic(void *actx){
 		while(fgets(l, MAXLINE, ftrame))	/* Wait 'till the beginning of the trame */
 			if(!strncmp(l,"ADCO",4))
 				break;
-		if(feof(ftrame)){
+		if(ferror(ftrame) || feof(ftrame)){
 			fclose(ftrame);
 			break;
 		}
@@ -609,6 +610,9 @@ void *process_historic(void *actx){
 			fclose(ftrame);
 			break;
 		}
+
+		if(ferror(ftrame))
+			perror(ctx->port);
 
 			/* Reaching here if deplay in place */
 		fclose(ftrame);
