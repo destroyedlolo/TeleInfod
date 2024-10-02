@@ -10,20 +10,20 @@ gcc -DUSE_MOSQUITTO TeleInfod.c -lpthread -lmosquitto -Wall -o TeleInfod
  * if using PAHO (Asynchronous)
 gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *
- * Copyright 2015-2023 Laurent Faillie
+ * Copyright 2015-2024 Laurent Faillie
  *
  * 		TeleInfod is covered by 
  *      Creative Commons Attribution-NonCommercial 3.0 License
  *      (http://creativecommons.org/licenses/by-nc/3.0/) 
  *      Consequently, you're free to use if for personal or non-profit usage,
- *      professional or commercial usage REQUIRES a commercial licence.
+ *      professional or commercial usage REQUIRES a commercial license.
  *  
  *      TeleInfod is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * Note : I didn't find any information if the TéléInfo frame is French Only or if it's an
- * 	International norm. So, by default, I put comment in English.
+ * 	International norm. So, by default, I put the comments in English.
  *
  *		03/05/2015 - v0.1 LF - Start of development, using Mosquitto's own library, synchronous
  *		04/05/2015 - v0.2 LF - Add Paho library and asynchronous calls
@@ -33,7 +33,7 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *		05/05/2015 - v1.0 LF - Add summary
  *							- release as v1.0
  *		06/05/2015 - v1.1 LF - Send only strings to avoid endianness issue
- *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stay open
+ *		29/07/2015 - v1.2 LF - Allow 0 sample delay : in this case, ttyS stays open
  *					-------
  *		25/08/2015 - v2.0 LF - Add monitoring period
  *		22/10/2015 - v2.1 LF - Improve Mosquitto handling
@@ -44,9 +44,10 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *				- Add HHPHC in summary
  *		10/09/2017 - v2.5 LF - Add PTEC in summary
  *					-------
- *		04/06/2021 - v3.0 LF - handly Linky's standard frame
- *							- remove c99 dependancies
+ *		04/06/2021 - v3.0 LF - handle Linky's standard frame
+ *							- remove c99 dependencies
  *		29/07/2023 - v3.1 LF - Publish date as well for standard frame
+ *		15/08/2024 - v3.2 LF - Add some securities
  */
 
 #include <stdio.h>
@@ -70,7 +71,7 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
 #	include <MQTTClient.h>
 #endif
 
-#define VERSION "3.1"
+#define VERSION "3.2"
 #define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -439,7 +440,7 @@ void *process_historic(void *actx){
 		while(fgets(l, MAXLINE, ftrame))	/* Wait 'till the beginning of the trame */
 			if(!strncmp(l,"ADCO",4))
 				break;
-		if(feof(ftrame)){
+		if(ferror(ftrame) || feof(ftrame)){
 			fclose(ftrame);
 			break;
 		}
@@ -609,6 +610,9 @@ void *process_historic(void *actx){
 			fclose(ftrame);
 			break;
 		}
+
+		if(ferror(ftrame))
+			perror(ctx->port);
 
 			/* Reaching here if deplay in place */
 		fclose(ftrame);

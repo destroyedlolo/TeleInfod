@@ -1,8 +1,8 @@
 /*
  * SimuleTrames
- * 	Quick and dirty TeleInfod companion that sending double 
- * 	"TeleInformation" frame, one with HC/HP (consomation), another
- * 	with BASE (production), to a fifo pipes.
+ * 	Quick and dirty TeleInfod companion that sends double 
+ * 	"TeleInformation" frame, one with HC/HP (consommation), another
+ * 	with BASE (production), to FIFO pipes.
  *
  *	SimuleTrames is used to test TeleInfod.
  *
@@ -24,7 +24,7 @@ gcc -DSTRESS=10000 -Wall SimuleTrames.c -o SimuleTrames
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  *	23/08/2015 - v1		LF - First version
- *	22/10/2015 - v1.1 	LF - Add some fields + conditionnaly compile production frame
+ *	22/10/2015 - v1.1 	LF - Add some fields + conditionally compile the production frame
  *	16/07/2016 - v1.2	LF - w/ STRESS set, usleep replace sleep to flood the network
  */
 
