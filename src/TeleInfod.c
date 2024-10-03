@@ -183,6 +183,66 @@ static void read_configuration(const char *fch){
 	fclose(f);
 }
 
+#ifdef USE_MOSQUITTO
+int papub( const char *topic, int length, void *payload, int retained ){	/* Custom wrapper to publish */
+	switch(mosquitto_publish(mosq, NULL, topic, length, payload, 0, retained ? true : false)){
+	case MOSQ_ERR_INVAL:
+		fputs("The input parameters were invalid",stderr);
+		break;
+	case MOSQ_ERR_NOMEM:
+		fputs("An out of memory condition occurred",stderr);
+		break;
+	case MOSQ_ERR_NO_CONN:
+		fputs("The client isn’t connected to a broker",stderr);
+		break;
+	case MOSQ_ERR_PROTOCOL:
+		fputs("There is a protocol error communicating with the broker",stderr);
+		break;
+	case MOSQ_ERR_PAYLOAD_SIZE:
+		fputs("Payloadlen is too large",stderr);
+		break;
+	}
+
+	return 1;
+}
+#elif USE_PAHO
+	/*
+	 * Paho's specific functions
+	 */
+int msgarrived(void *ctx, char *topic, int tlen, MQTTClient_message *msg){
+	if(debug)
+		printf("*I* Unexpected message arrival (topic : '%s')\n", topic);
+
+	MQTTClient_freeMessage(&msg);
+	MQTTClient_free(topic);
+	return 1;
+}
+
+void connlost(void *ctx, char *cause){
+	printf("*W* Broker connection lost due to %s\n", cause);
+}
+
+int papub( const char *topic, int length, void *payload, int retained ){	/* Custom wrapper to publish */
+	MQTTClient_message pubmsg = MQTTClient_message_initializer;
+	pubmsg.retained = retained;
+	pubmsg.payloadlen = length;
+	pubmsg.payload = payload;
+
+	return MQTTClient_publishMessage( client, topic, &pubmsg, NULL);
+}
+#endif
+
+void theend(void){
+		/* Some cleanup */
+#ifdef USE_MOSQUITTO
+	mosquitto_destroy(mosq);
+	mosquitto_lib_cleanup();
+#elif defined(USE_PAHO)
+	MQTTClient_disconnect(client, 10000);	/* 10s for the grace period */
+	MQTTClient_destroy(&client);
+#endif
+}
+
 int main(int ac, char **av){
 	const char *conf_file = DEFAULT_CONFIGURATION_FILE;
 	
@@ -216,6 +276,100 @@ int main(int ac, char **av){
 
 	sections = NULL;
 	read_configuration( conf_file );
+
+	if(!sections){
+		fputs("*F* No section defined : giving up ...\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+
+	if(debug){
+		printf("Sanity checks : ");
+		fflush( stdout );
+	}
+
+	for(struct CSection *s = sections ; s; s = s->next ){
+		if(!s->port){
+			fprintf( stderr, "*F* No port defined for section '%s'\n", s->name );
+			exit(EXIT_FAILURE);
+		}
+
+		if(s->standard){	/* check specifics for standard frames */
+			if(!s->topic && !s->cctopic && !s->cptopic){
+				fprintf( stderr, "*F* at least Topic, ConvCons or ConvProd has to be provided for standard section '%s'\n", s->name );
+				exit(EXIT_FAILURE);
+			}
+			if(s->cctopic){
+				fprintf( stderr, "*F* ConvCons is not yet implemented as per v3.0 in standard section '%s'\n", s->name );
+				exit(EXIT_FAILURE);
+			}
+		} else {	/* check specifics for historic frames */
+			if(!s->topic){
+				fprintf( stderr, "*F* Topic is mandatory for historic section '%s'\n", s->name );
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+	if(debug)
+		puts("PASSED\n");
+
+		/* Connecting to the broker */
+#ifdef USE_MOSQUITTO
+	mosquitto_lib_init();
+	if(!(mosq = mosquitto_new(
+		"TeleInfod",	/* Id for this client */
+		true,			/* clean msg on exit */
+		NULL			/* No call backs */
+	))){
+		perror("Moquitto_new()");
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	}
+
+	switch( mosquitto_connect(mosq, Broker_Host, Broker_Port, BRK_KEEPALIVE) ){
+	case MOSQ_ERR_INVAL:
+		fputs("Invalid parameter for mosquitto_connect()\n", stderr);
+		mosquitto_destroy(mosq);
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	case MOSQ_ERR_ERRNO:
+		perror("mosquitto_connect()");
+		mosquitto_destroy(mosq);
+		mosquitto_lib_cleanup();
+		exit(EXIT_FAILURE);
+	default :
+		if(debug)
+			puts("Connected using Mosquitto library");
+	}
+#elif defined(USE_PAHO)
+	{
+		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+		conn_opts.reliable = 0;
+
+		MQTTClient_create( &client, Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+		MQTTClient_setCallbacks( client, NULL, connlost, msgarrived, NULL);
+
+		switch( MQTTClient_connect( client, &conn_opts) ){
+		case MQTTCLIENT_SUCCESS : 
+			break;
+		case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
+			exit(EXIT_FAILURE);
+		case 2 : fputs("Unable to connect : Identifier rejected\n", stderr);
+			exit(EXIT_FAILURE);
+		case 3 : fputs("Unable to connect : Server unavailable\n", stderr);
+			exit(EXIT_FAILURE);
+		case 4 : fputs("Unable to connect : Bad user name or password\n", stderr);
+			exit(EXIT_FAILURE);
+		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
+			exit(EXIT_FAILURE);
+		default :
+			fputs("Unable to connect : Unknown version\n", stderr);
+			exit(EXIT_FAILURE);
+		}
+	}
+#endif
+
+	atexit(theend);
 
 	if(debug)
 		puts("Starting ...");
