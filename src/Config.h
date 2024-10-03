@@ -2,7 +2,7 @@
  * TeleInfod
  * 	A daemon to publish EDF's "Télé Information" to a MQTT broker
  *
- * Copyright 2015-2023 Laurent Faillie (destroyedlolo)
+ * Copyright 2015-2024 Laurent Faillie (destroyedlolo)
  *
  *	TeleInfod is covered by 
  *	Creative Commons Attribution-NonCommercial 3.0 License

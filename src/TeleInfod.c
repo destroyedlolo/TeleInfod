@@ -81,7 +81,7 @@ char *extr_arg(char *s, int l){
 	 * Fill configuration from given configuration file
 	 * -> fch : configuration file to read
 	 * **/
-static void read_configuration( const char *fch){
+static void read_configuration(const char *fch){
 	FILE *f;
 	char l[MAXLINE];
 	char *arg;
@@ -144,6 +144,33 @@ static void read_configuration( const char *fch){
 
 			if(debug)
 				printf("Entering section '%s'\n", n->name);
+		} else if((arg = striKWcmp(l,"Port="))){	/* It's an historic section */
+			if(!sections){
+				fputs("*F* Configuration issue : Port directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			if(sections->port){
+				fputs("*F* Configuration issue : Port directive used more than once in a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (sections->port = strdup( removeLF(arg) )) );
+			sections->standard = false;
+
+			if(debug)
+				printf("\tHistoric frame\n\tSerial port : '%s'\n", sections->port);
+		} else if((arg = striKWcmp(l,"Topic="))){
+			if(!sections){
+				fputs("*F* Configuration issue : Topic directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			if(sections->topic){
+				fputs("*F* Configuration issue : Topic directive used more than once in a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (sections->topic = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tTopic : '%s'\n", sections->topic);
+
 		} else {
 			fprintf(stderr, "\nERROR line %u : \"%s\" is not a known configuration directive\n", ln, removeLF(l));
 			exit(EXIT_FAILURE);
