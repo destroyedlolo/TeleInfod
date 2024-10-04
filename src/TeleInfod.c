@@ -161,6 +161,20 @@ static void read_configuration(const char *fch){
 
 			if(debug)
 				printf("\tHistoric frame\n\tSerial port : '%s'\n", sections->port);
+		} else if((arg = striKWcmp(l,"SPort="))){	/* It's a standard section */
+			if(!sections){
+				fputs("*F* Configuration issue : SPort directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			if(sections->port){
+				fputs("*F* Configuration issue : SPort directive used more than once in a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (sections->port = strdup( removeLF(arg) )) );
+			sections->standard = true;
+
+			if(debug)
+				printf("\tStandard frame\n\tSerial port : '%s'\n", sections->port);
 		} else if((arg = striKWcmp(l,"Topic="))){
 			if(!sections){
 				fputs("*F* Configuration issue : Topic directive outside a section\n", stderr);
