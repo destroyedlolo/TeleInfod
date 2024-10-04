@@ -48,16 +48,4 @@
 #define VERSION "V4.00.00"
 #define COPYRIGHT "(c) L.Faillie 2015-24"
 
-	/* Where to find default configuration file */
-#define DEFAULT_CONFIGURATION_FILE "/usr/local/etc/TeleInfod.conf"
-
-	/* Keep alive signal to the broker */
-#define BRK_KEEPALIVE 60
-
-	/* Maximum length of a line to be read */
-#define MAXLINE 1024
-
-	/* Shared objects */
-extern unsigned int debug;
-
 #endif

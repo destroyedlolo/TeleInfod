@@ -29,14 +29,17 @@
 
 #include "Version.h"
 #include "Config.h"
+#include "TeleInfod.h"
 
 unsigned int debug = 0;
-const char *Broker_Host;
-int Broker_Port;
-struct CSection *sections;
+static const char *Broker_Host;
+#ifdef USE_MOSQUITTO
+static int Broker_Port;
+#endif
+static struct CSection *sections;
 
 #ifdef USE_MOSQUITTO
-struct mosquitto *mosq;
+static struct mosquitto *mosq;
 #elif defined(USE_PAHO)
 MQTTClient client;
 #else
@@ -209,7 +212,7 @@ int papub( const char *topic, int length, void *payload, int retained ){	/* Cust
 	/*
 	 * Paho's specific functions
 	 */
-int msgarrived(void *ctx, char *topic, int tlen, MQTTClient_message *msg){
+static int msgarrived(void *ctx, char *topic, int tlen, MQTTClient_message *msg){
 	if(debug)
 		printf("*I* Unexpected message arrival (topic : '%s')\n", topic);
 
@@ -218,7 +221,7 @@ int msgarrived(void *ctx, char *topic, int tlen, MQTTClient_message *msg){
 	return 1;
 }
 
-void connlost(void *ctx, char *cause){
+static void connlost(void *ctx, char *cause){
 	printf("*W* Broker connection lost due to %s\n", cause);
 }
 
@@ -232,7 +235,7 @@ int papub( const char *topic, int length, void *payload, int retained ){	/* Cust
 }
 #endif
 
-void theend(void){
+static void theend(void){
 		/* Some cleanup */
 #ifdef USE_MOSQUITTO
 	mosquitto_destroy(mosq);
