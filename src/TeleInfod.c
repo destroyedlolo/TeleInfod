@@ -116,7 +116,7 @@ static void read_configuration(const char *fch){
 			continue;
 
 		if((arg = striKWcmp(l,"Broker_Host="))){
-			Broker_Host = removeLF(arg);
+			assert( (Broker_Host = strdup(removeLF(arg))) );
 			if(debug)
 				printf("\tBroker host : '%s'\n", Broker_Host);
 		} else if((arg = striKWcmp(l,"Broker_Port="))){
@@ -363,8 +363,8 @@ int main(int ac, char **av){
 		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 		conn_opts.reliable = 0;
 
+printf("---> '%s'\n", Broker_Host);
 		int err;
-
 		if((err = MQTTClient_create( &client, Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
 			fprintf(stderr, "Failed to create client : %d\n", err);
 			exit(EXIT_FAILURE);
