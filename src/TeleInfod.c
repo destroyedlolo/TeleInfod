@@ -363,10 +363,15 @@ int main(int ac, char **av){
 		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 		conn_opts.reliable = 0;
 
-		MQTTClient_create( &client, Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+		int err;
+
+		if((err = MQTTClient_create( &client, Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
+			fprintf(stderr, "Failed to create client : %d\n", err);
+			exit(EXIT_FAILURE);
+		}
 		MQTTClient_setCallbacks( client, NULL, connlost, msgarrived, NULL);
 
-		switch( MQTTClient_connect( client, &conn_opts) ){
+		switch( (err = MQTTClient_connect( client, &conn_opts)) ){
 		case MQTTCLIENT_SUCCESS : 
 			break;
 		case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
@@ -379,8 +384,11 @@ int main(int ac, char **av){
 			exit(EXIT_FAILURE);
 		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
 			exit(EXIT_FAILURE);
+		case MQTTCLIENT_BAD_STRUCTURE:
+			fputs("Header / Library mismatch : recompilation is needed !", stderr);
+			exit(EXIT_FAILURE);
 		default :
-			fputs("Unable to connect : Unknown version\n", stderr);
+			fprintf(stderr, "Unable to connect (%d)\n", err);
 			exit(EXIT_FAILURE);
 		}
 	}
