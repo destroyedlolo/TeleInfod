@@ -25,6 +25,7 @@ struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	const char *name;		/* help to have understandable error messages */
 	pthread_t thread;
 	const char *port;		/* Where to read */
+	const char *labels;		/* Label to publish */
 	bool standard;			/* true : standard frames, false : historic */
 	const char *topic;		/* main topic */
 	const char *cctopic;	/* Converted Customer topic */

@@ -138,6 +138,7 @@ static void read_configuration(const char *fch){
 
 				/* Default value */
 			n->port = NULL;
+			n->labels = NULL;
 			n->standard = true;
 			n->topic = n->cctopic = n->cptopic = NULL;
 
@@ -307,6 +308,11 @@ int main(int ac, char **av){
 	for(struct CSection *s = sections ; s; s = s->next ){
 		if(!s->port){
 			fprintf( stderr, "*F* No port defined for section '%s'\n", s->name );
+			exit(EXIT_FAILURE);
+		}
+
+		if(!s->labels){
+			fprintf( stderr, "*F* Publishing missing for section '%s'\n", s->name );
 			exit(EXIT_FAILURE);
 		}
 
