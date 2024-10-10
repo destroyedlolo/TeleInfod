@@ -18,10 +18,13 @@
 #ifndef TELEINFO_H
 #define TELEINFO_H
 
+#include <stdio.h>
+
 extern unsigned int debug;
 
 extern char *removeLF(char *);
 extern char *striKWcmp(char *, const char *);
+extern const char *getLabel(FILE *, char *, char);
 
 extern int papub(const char *, int, void *, int);
 

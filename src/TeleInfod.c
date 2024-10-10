@@ -15,7 +15,6 @@
  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -84,7 +83,7 @@ void debugchar(const char x){
 	}
 }
 
-const char *getLabel(FILE *f, char *buffer){
+const char *getLabel(FILE *f, char *buffer, char sep){
 /* Wait for the next label and store it in the buffer
  * -> buffer : char [9]
  * <- the buffer filled with the label
@@ -106,13 +105,18 @@ const char *getLabel(FILE *f, char *buffer){
 		if(debug)
 			puts("\n*d* Reading the label");
 		int i;
-		for(i=0; i==9 || c==0x09; i++){
-			buffer[i]= (char)c;
+		for(i=0; i<9; i++){
+			c=fgetc(f);
 			if(c == EOF)
 				return NULL;
+			else if(c == sep)
+				break;
+
+			buffer[i]= (char)c;
 			debugchar(c);
 		}
-		if(c<9){	/* A label is found */
+
+		if(i<9){	/* A label is found */
 			buffer[i]=0;
 			if(debug)
 				printf("\n*d* Found '%s'\n", buffer);
@@ -422,7 +426,6 @@ int main(int ac, char **av){
 		MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 		conn_opts.reliable = 0;
 
-printf("---> '%s'\n", Broker_Host);
 		int err;
 		if((err = MQTTClient_create( &client, Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
 			fprintf(stderr, "Failed to create client : %d\n", err);
