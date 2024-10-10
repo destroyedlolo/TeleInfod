@@ -25,4 +25,5 @@ extern char *striKWcmp(char *, const char *);
 
 extern int papub(const char *, int, void *, int);
 
+extern void *process_historic(void *);
 #endif

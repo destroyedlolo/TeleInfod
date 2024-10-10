@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
+#include <signal.h>
 
 #ifdef USE_MOSQUITTO
 #	include <mosquitto.h>
@@ -71,8 +73,17 @@ char *striKWcmp( char *s, const char *kw ){
 
 
 	/* **
-	 * Trames handling
+	 * Frame's handling
 	 * **/
+void debugchar(const char x){
+	if(debug>1){
+		if(isprint(x))
+			putchar(x);
+		else
+			printf("<%02x>", x);
+	}
+}
+
 const char *getLabel(FILE *f, char *buffer){
 /* Wait for the next label and store it in the buffer
  * -> buffer : char [9]
@@ -81,14 +92,36 @@ const char *getLabel(FILE *f, char *buffer){
  */
  	int c;
 	while(1){
+		if(debug)
+			puts("*d* waiting for the beginning");
+
 		do {
 			c=fgetc(f);
+
 			if(c == EOF)
 				return NULL;
+			debugchar(c);
 		} while(c != 0x0a);
 
+		if(debug)
+			puts("\n*d* Reading the label");
+		int i;
 		for(i=0; i==9 || c==0x09; i++){
+			buffer[i]= (char)c;
+			if(c == EOF)
+				return NULL;
+			debugchar(c);
 		}
+		if(c<9){	/* A label is found */
+			buffer[i]=0;
+			if(debug)
+				printf("\n*d* Found '%s'\n", buffer);
+			return buffer;
+		}
+
+		/* Ignoring ... restart from the beginning */
+		if(debug)
+			puts("\n*d* Too long ... restarting");
 	}
 }
 
@@ -277,6 +310,10 @@ static void theend(void){
 #endif
 }
 
+void handleInt(int na){
+	exit(EXIT_SUCCESS);
+}
+
 int main(int ac, char **av){
 	const char *conf_file = DEFAULT_CONFIGURATION_FILE;
 	
@@ -321,7 +358,7 @@ int main(int ac, char **av){
 		fflush( stdout );
 	}
 
-	for(struct CSection *s = sections ; s; s = s->next ){
+	for(struct CSection *s = sections ; s; s = s->next){
 		if(!s->port){
 			fprintf( stderr, "*F* No port defined for section '%s'\n", s->name );
 			exit(EXIT_FAILURE);
@@ -420,4 +457,23 @@ printf("---> '%s'\n", Broker_Host);
 
 	if(debug)
 		puts("Starting ...");
+
+		/* Creation of reading threads */
+	pthread_attr_t thread_attr;
+	assert(!pthread_attr_init (&thread_attr));
+	assert(!pthread_attr_setdetachstate (&thread_attr, PTHREAD_CREATE_DETACHED));
+
+	for(struct CSection *s = sections ; s; s = s->next){
+		if(s->standard){
+		} else {
+			if(pthread_create( &(s->thread), &thread_attr, process_historic, s) < 0){
+				fputs("*F* Can't create a processing thread\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+		/* Lets threads working */
+	signal(SIGINT, handleInt);
+
 }

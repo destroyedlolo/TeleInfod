@@ -16,4 +16,8 @@
  */
 
 #include "TeleInfod.h"
+#include "Config.h"
 
+void *process_historic(void *actx){
+	pthread_exit(0);
+}

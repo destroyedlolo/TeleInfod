@@ -19,6 +19,7 @@
 #define CONFIG_H
 
 #include <stdbool.h>
+#include <pthread.h>
 
 struct CSection {	/* Section of the configuration : a TéléInfo flow */
 	struct CSection *next;	/* Next section */
