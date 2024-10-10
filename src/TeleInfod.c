@@ -58,7 +58,7 @@ char *removeLF(char *s){
 
 char *striKWcmp( char *s, const char *kw ){
 /* compares string s against kw
- * Return :
+ * Returns :
  * 	- remaining string if the keyword matches
  * 	- NULL if the keyword is not found
  */
@@ -69,14 +69,27 @@ char *striKWcmp( char *s, const char *kw ){
 		return s+klen;
 }
 
-char *extr_arg(char *s, int l){ 
-/* Extracts an argument from TéléInfo trame 
- *	s : argument string just after the token
- *	l : length of the argument
+
+	/* **
+	 * Trames handling
+	 * **/
+const char *getLabel(FILE *f, char *buffer){
+/* Wait for the next label and store it in the buffer
+ * -> buffer : char [9]
+ * <- the buffer filled with the label
+ *	NULL if the file is over
  */
-	s++;	/* Skip the leading space */
-	s[l]=0;
-	return s;
+ 	int c;
+	while(1){
+		do {
+			c=fgetc(f);
+			if(c == EOF)
+				return NULL;
+		} while(c != 0x0a);
+
+		for(i=0; i==9 || c==0x09; i++){
+		}
+	}
 }
 
 
@@ -188,7 +201,10 @@ static void read_configuration(const char *fch){
 			assert( (sections->topic = strdup( removeLF(arg) )) );
 			if(debug)
 				printf("\tTopic : '%s'\n", sections->topic);
-
+		} else if((arg = striKWcmp(l,"Publish="))){
+			assert( (sections->labels = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tLabels : '%s'\n", sections->labels);
 		} else {
 			fprintf(stderr, "\nERROR line %u : \"%s\" is not a known configuration directive\n", ln, removeLF(l));
 			exit(EXIT_FAILURE);

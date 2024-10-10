@@ -1,6 +1,6 @@
 /*
- * TeleInfod
- * 	A daemon to publish EDF's "Télé Information" to a MQTT broker
+ *	Historic.c
+ *		Handle historic data
  *
  * Copyright 2015-2024 Laurent Faillie (destroyedlolo)
  *
@@ -15,14 +15,5 @@
  *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef TELEINFO_H
-#define TELEINFO_H
+#include "TeleInfod.h"
 
-extern unsigned int debug;
-
-extern char *removeLF(char *);
-extern char *striKWcmp(char *, const char *);
-
-extern int papub(const char *, int, void *, int);
-
-#endif
