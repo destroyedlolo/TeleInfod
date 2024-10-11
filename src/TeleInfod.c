@@ -516,4 +516,5 @@ int main(int ac, char **av){
 		/* Lets threads working */
 	signal(SIGINT, handleInt);
 
+	pause();	/* No summary to send : waiting for the end */
 }

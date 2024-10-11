@@ -53,6 +53,8 @@ void *process_historic(void *actx){
 	
 			if(debug)
 				printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, buffer);
+
+			papub(topic, strlen(buffer), buffer, 0);
 		}
 	}
 	fclose(fframe);
