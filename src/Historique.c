@@ -44,8 +44,15 @@ void *process_historic(void *actx){
 	while(getLabel(fframe, buffer, 0x20)){	/* Reading data */
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
 			strcpy(topic + sz, buffer);
+
+			if(!getPayload(fframe, buffer, 0x20, 16))
+				break;	/* File is over */
+	
+			if(!*buffer)	/* Can't load the payload */
+				continue;
+	
 			if(debug)
-				printf("*d* Publishing to '%s'\n", topic);
+				printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, buffer);
 		}
 	}
 	fclose(fframe);

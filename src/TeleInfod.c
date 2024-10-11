@@ -129,6 +129,43 @@ const char *getLabel(FILE *f, char *buffer, char sep){
 	}
 }
 
+const char *getPayload(FILE *f, char *buffer, char sep, size_t size){
+/* Read the payload.
+ * File needs to be positionned at its beginning.
+ * -> size : size of the buffer
+ * <- the buffer filled with the payload
+ * (can be empty if the payload exceeds buffer's size)
+ * NULL if the file is over
+ */
+	int c;
+	if(debug)
+		puts("\n*d* Reading the payload");
+
+	int i;
+	for(i=0; i<size; i++){
+		c=fgetc(f);
+		if(c == EOF)
+			return NULL;
+		else if(c == sep)
+			break;
+	
+		buffer[i]= (char)c;
+		debugchar(c);
+	}
+
+	if(i<size){
+		buffer[i]=0;
+		if(debug)
+			printf("\n*d* Read '%s'\n", buffer);
+		return buffer;
+	}
+
+	if(debug)
+		puts("\n*d* Too long ...");
+
+	*buffer = 0;
+	return buffer;
+}
 
 	/* **
 	 * Fill configuration from given configuration file

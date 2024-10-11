@@ -25,6 +25,7 @@ extern unsigned int debug;
 extern char *removeLF(char *);
 extern char *striKWcmp(char *, const char *);
 extern const char *getLabel(FILE *, char *, char);
+extern const char *getPayload(FILE *, char *, char, size_t);
 
 extern int papub(const char *, int, void *, int);
 
