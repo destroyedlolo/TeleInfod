@@ -16,6 +16,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "TeleInfod.h"
 #include "Config.h"
@@ -23,6 +24,12 @@
 void *process_historic(void *actx){
 	struct CSection *ctx = actx;	/* Only to avoid zillions of cast */
 	FILE *fframe;
+
+		/* Target topics */
+	int sz = strlen(ctx->topic);	/* Size of its root */
+	char topic[ sz + 14];
+	strcpy(topic, ctx->topic);
+	topic[sz++] = '/';
 
 	if(debug)
 		printf("Launching a processing historic for '%s'\n", ctx->name);
@@ -35,7 +42,11 @@ void *process_historic(void *actx){
 	}
 
 	while(getLabel(fframe, buffer, 0x20)){	/* Reading data */
-		printf("--> '%s'\n", buffer);
+		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
+			strcpy(topic + sz, buffer);
+			if(debug)
+				printf("*d* Publishing to '%s'\n", topic);
+		}
 	}
 	fclose(fframe);
 	pthread_exit(0);
