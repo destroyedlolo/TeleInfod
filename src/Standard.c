@@ -26,35 +26,96 @@ void *process_standard(void *actx){
 	FILE *fframe;
 
 			/* Target topics */
-	int sz = strlen(ctx->topic);	/* Size of its root */
-	char topic[ sz + 14];
-	strcpy(topic, ctx->topic);
-	topic[sz++] = '/';
+
+		/* Main */
+	int sz = ctx->topic ? strlen(ctx->topic):0;	/* Size of its root */
+	char topic[sz + 16]; /* topic + '/h' */
+	if(sz){
+		strcpy(topic, ctx->topic);
+		topic[sz++] = '/';
+	}
+
+		/* Converted producer */
+	int szcp = ctx->cptopic ? strlen(ctx->cptopic):0;
+	char cptopic[szcp + 14];
+	if(szcp){
+		strcpy(cptopic, ctx->cptopic);
+		cptopic[szcp++] = '/';
+	}
 
 	if(debug)
 		printf("Launching a processing historic for '%s'\n", ctx->name);
 
 	char buffer[256];	/* the largest field content seems arount 120 ... but as there is no standard limit ... */
 	
-	if(!(fframe = fopen( ctx->port, "r" ))){
+	if(!(fframe = fopen(ctx->port, "r" ))){
 		perror(ctx->port);
 		exit(EXIT_FAILURE);
 	}
 
 	while(getLabel(fframe, buffer, 0x09)){	/* Reading data */
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
-			strcpy(topic + sz, buffer);
+			bool cpfound = false;
+			bool horodate = (bool) strstr(
+				"SMAXSN,SMAXSN1,SMAXSN2,SMAXSN3,"
+				"SMAXSN-1,SMAXSN1-1,SMAXSN2-1,SMAXSN3-1,"
+				"SMAXIN,SMAXIN-1,"
+				"CCASN,CCASN-1,CCAIN,CCAIN-1"
+				",UMOY1,UMOY2,UMOY3,"
+				"DPM1,FPM1,DPM2,FPM2,DPM3,FPM3"
+			, buffer);
+
+			if(sz)	/* Full topic name */
+				strcpy(topic + sz, buffer);
+			if(szcp){
+				cpfound = true;
+				if(!strcmp(buffer,"SINSTI"))
+					strcpy(cptopic + szcp, "PAPP");
+				else if(!strcmp(buffer,"IRMS1"))
+					strcpy(cptopic + szcp, "IINST");
+				else if(!strcmp(buffer,"EAIT"))
+					strcpy(cptopic + szcp, "BASE");
+				else if(!strcmp(buffer,"SMAXIN"))
+					strcpy(cptopic + szcp, "IMAX");
+				else
+					cpfound = false;
+			}
 
 			if(!getPayload(fframe, buffer, 0x09, 256))
 				break;	/* File is over */
-	
 			if(!*buffer)	/* Can't load the payload */
 				continue;
 	
-			if(debug)
-				printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, buffer);
+			char *dt = buffer;
+			if(horodate){	/* The date is embedded */
+				dt = buffer + strlen(buffer) + 1;
 
-			papub(topic, strlen(buffer), buffer, 0);
+				if(!getPayload(fframe, dt, 0x09, 256))
+					break;	/* File is over */
+				if(!*dt)	/* Can't load the payload */
+					continue;
+			}
+
+			if(sz){
+				if(debug){
+					if(horodate)
+						printf("*d* [%s] Publishing '%s' : '%s' '%s'\n", ctx->name, topic, buffer, dt);
+					else
+						printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, dt);
+				}
+				papub(topic, strlen(dt), dt, 0);
+				if(horodate){
+					strcat(topic, "/h");
+					papub(topic, strlen(buffer), buffer, 0);
+				}
+			}
+
+			if(cpfound){
+				int offset = (*buffer='E') ? 8:0;	/* skip horodatage */
+				if(debug)
+					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, buffer+offset);
+				papub(cptopic, strlen(buffer), buffer+offset, 0);
+			}
 		}
 	}
 
