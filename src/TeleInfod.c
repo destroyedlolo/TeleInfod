@@ -2,7 +2,7 @@
  * TeleInfod
  * 	A daemon to publish EDF's "Télé Information" to a MQTT broker
  *
- * Copyright 2015-2023 Laurent Faillie (destroyedlolo)
+ * Copyright 2015-2024 Laurent Faillie (destroyedlolo)
  *
  *	TeleInfod is covered by 
  *	Creative Commons Attribution-NonCommercial 3.0 License
@@ -360,10 +360,11 @@ int main(int ac, char **av){
 	
 		/* reading arguments */
 	int opt;
-	while((opt = getopt(ac, av, "hdDf:")) != -1){
+	while((opt = getopt(ac, av, "hdvDf:")) != -1){
 		switch(opt){
 		case 'D':
 			debug = 1;
+		case 'v':
 		case 'd':
 			debug += 1;
 			printf("TeleInfod (%s) %s\n", VERSION, COPYRIGHT);
@@ -377,6 +378,7 @@ int main(int ac, char **av){
 				"Known options are :\n"
 				"\t-h : this online help\n"
 				"\t-d : enable debug messages\n"
+				"\t-v : be verbose (alias for debug)\n"
 				"\t-D : enable debug messages and display frame\n"
 				"\t-f<file> : read <file> for configuration\n"
 				"\t\t(default is '%s')\n",
