@@ -507,6 +507,10 @@ int main(int ac, char **av){
 
 	for(struct CSection *s = sections ; s; s = s->next){
 		if(s->standard){
+			if(pthread_create( &(s->thread), &thread_attr, process_standard, s) < 0){
+				fputs("*F* Can't create a processing thread\n", stderr);
+				exit(EXIT_FAILURE);
+			}
 		} else {
 			if(pthread_create( &(s->thread), &thread_attr, process_historic, s) < 0){
 				fputs("*F* Can't create a processing thread\n", stderr);

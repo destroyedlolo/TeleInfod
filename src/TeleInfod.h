@@ -30,4 +30,5 @@ extern const char *getPayload(FILE *, char *, char, size_t);
 extern int papub(const char *, int, void *, int);
 
 extern void *process_historic(void *);
+extern void *process_standard(void *);
 #endif

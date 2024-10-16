@@ -57,6 +57,10 @@ void *process_historic(void *actx){
 			papub(topic, strlen(buffer), buffer, 0);
 		}
 	}
+
+	if(debug){
+		printf("*d*  [%s] Input stream closed : thread is finished.\n", ctx->name);
+	}
 	fclose(fframe);
 	pthread_exit(0);
 }
