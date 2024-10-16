@@ -275,6 +275,23 @@ static void read_configuration(const char *fch){
 			assert( (sections->topic = strdup( removeLF(arg) )) );
 			if(debug)
 				printf("\tTopic : '%s'\n", sections->topic);
+		} else if((arg = striKWcmp(l,"ConvCons="))){
+			if(!sections){
+				fputs("*F* Configuration issue : ConvCons directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (sections->cctopic = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tConverted customer topic : '%s'\n", sections->cctopic);
+
+		} else if((arg = striKWcmp(l,"ConvProd="))){
+			if(!sections){
+				fputs("*F* Configuration issue : ConvProd directive outside a section\n", stderr);
+				exit(EXIT_FAILURE);
+			}
+			assert( (sections->cptopic = strdup( removeLF(arg) )) );
+			if(debug)
+				printf("\tConverted producer topic : '%s'\n", sections->cptopic);
 		} else if((arg = striKWcmp(l,"Publish="))){
 			assert( (sections->labels = strdup( removeLF(arg) )) );
 			if(debug)

@@ -111,10 +111,9 @@ void *process_standard(void *actx){
 			}
 
 			if(cpfound){
-				int offset = (*buffer='E') ? 8:0;	/* skip horodatage */
 				if(debug)
-					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, buffer+offset);
-				papub(cptopic, strlen(buffer), buffer+offset, 0);
+					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, dt);
+				papub(cptopic, strlen(dt), dt, 0);
 			}
 		}
 	}
