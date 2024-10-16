@@ -41,4 +41,26 @@ void *process_standard(void *actx){
 		exit(EXIT_FAILURE);
 	}
 
+	while(getLabel(fframe, buffer, 0x09)){	/* Reading data */
+		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
+			strcpy(topic + sz, buffer);
+
+			if(!getPayload(fframe, buffer, 0x09, 256))
+				break;	/* File is over */
+	
+			if(!*buffer)	/* Can't load the payload */
+				continue;
+	
+			if(debug)
+				printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, buffer);
+
+			papub(topic, strlen(buffer), buffer, 0);
+		}
+	}
+
+	if(debug){
+		printf("*d*  [%s] Input stream closed : thread is finished.\n", ctx->name);
+	}
+	fclose(fframe);
+	pthread_exit(0);
 }
