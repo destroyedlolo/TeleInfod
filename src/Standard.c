@@ -43,6 +43,14 @@ void *process_standard(void *actx){
 		cptopic[szcp++] = '/';
 	}
 
+		/* Converted Consumer */
+	int szcc = ctx->cctopic ? strlen(ctx->cctopic):0;
+	char cctopic[szcc + 14];
+	if(szcc){
+		strcpy(cctopic, ctx->cctopic);
+		cctopic[szcc++] = '/';
+	}
+
 	if(debug)
 		printf("Launching a processing historic for '%s'\n", ctx->name);
 
@@ -55,7 +63,8 @@ void *process_standard(void *actx){
 
 	while(getLabel(fframe, buffer, 0x09)){	/* Reading data */
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
-			bool cpfound = false;
+			bool cpfound = false;	/* Found a topic to be converted for producer */
+			bool ccfound = false;	/* Found a topic to be converted for consumer */
 			bool horodate = (bool) strstr(
 				"SMAXSN,SMAXSN1,SMAXSN2,SMAXSN3,"
 				"SMAXSN-1,SMAXSN1-1,SMAXSN2-1,SMAXSN3-1,"
@@ -71,7 +80,7 @@ void *process_standard(void *actx){
 				cpfound = true;
 				if(!strcmp(buffer,"SINSTI"))
 					strcpy(cptopic + szcp, "PAPP");
-				else if(!strcmp(buffer,"IRMS1"))
+				else if(!strcmp(buffer,"SINSTI"))
 					strcpy(cptopic + szcp, "IINST");
 				else if(!strcmp(buffer,"EAIT"))
 					strcpy(cptopic + szcp, "BASE");
@@ -79,6 +88,25 @@ void *process_standard(void *actx){
 					strcpy(cptopic + szcp, "IMAX");
 				else
 					cpfound = false;
+			}
+			if(szcc){
+				ccfound = true;
+				if(!strcmp(buffer,"EAST"))
+					strcpy(cctopic + szcc, "PAPP");
+				else if(!strcmp(buffer,"IRMS1"))
+					strcpy(cptopic + szcp, "IINST");
+/*
+Il faut sans doute jouer avec NGTF, LTARF et les index EASF01 et EASF02
+A voir avec une vraie trame.
+
+				else if(!strcmp(buffer,"????"))
+					strcpy(cptopic + szcp, "HHPHC");
+					strcpy(cptopic + szcp, "PTEC");
+					strcpy(cptopic + szcp, "HCHC");
+					strcpy(cptopic + szcp, "HCHP");
+*/
+				else
+					ccfound = false;
 			}
 
 			if(!getPayload(fframe, buffer, 0x09, 256))
@@ -114,6 +142,11 @@ void *process_standard(void *actx){
 				if(debug)
 					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, dt);
 				papub(cptopic, strlen(dt), dt, 0);
+			}
+			if(ccfound){
+				if(debug)
+					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cctopic, dt);
+				papub(cctopic, strlen(dt), dt, 0);
 			}
 		}
 	}

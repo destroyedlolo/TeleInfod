@@ -434,10 +434,6 @@ int main(int ac, char **av){
 				fprintf( stderr, "*F* at least Topic, ConvCons or ConvProd has to be provided for standard section '%s'\n", s->name );
 				exit(EXIT_FAILURE);
 			}
-			if(s->cctopic){
-				fprintf( stderr, "*F* ConvCons is not yet implemented as per v3.0 in standard section '%s'\n", s->name );
-				exit(EXIT_FAILURE);
-			}
 		} else {	/* check specifics for historic frames */
 			if(!s->topic){
 				fprintf( stderr, "*F* Topic is mandatory for historic section '%s'\n", s->name );
