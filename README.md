@@ -1,56 +1,52 @@
-**TeleInfod** is a daemon that publishes electricity smart meters “*TéléInformation*” data to a **MQTT Broker**.
+> [!IMPORTANT]
+> Téléinfo TIC seems only applicable in France. Consequently, this README is only in French.
 
-# Requirements :
-* A smart meter providing “TéléInformation” data as a serial flow (information about a DIY level converter for BananaPI can be found on [my web site](http://destroyedlolo.info/BananaPI/TeleInformation/) - French only -)
-* MQTT broker (i.e [Mosquitto](http://mosquitto.org/) )
-* Even if TeleInfod can be compiled to use Mosquitto’s own library, it is strongly advised to use [Paho](http://eclipse.org/paho/) as MQTT communication layer.
+**TeleInfod** est un démon qui publie les données de votre compteur Enedis par l'intermédiaire de sa prise *Téléinformation* vers un broker **MQTT**. Il est compatible à la fois avec les compteurs **Linky** mais aussi avec les anciens compteurs numériques.
+
+# Dépendances
+
+* Bien évidemment, un (ou des) compteur disposant d'une prise *TéléInformation* "TIC". Mon [site web](http://destroyedlolo.info/BananaPI/TeleInformation/) contient des montages d'exemples pour convertir ce signal (attention, certains montagnes ne sont pas compatibles avec le Linky).
+* Un broker MQTT tel que [Mosquitto](http://mosquitto.org/)
+* Bien que TeleInfod puisse être compilé avec la librairie Mosquitto, je vous conseille d'utiliser [Paho](http://eclipse.org/paho/).
 
 # Installation :
-* Get TeleInfod.c and put it in a temporary directory
-* If you want to use MOSQUITTO’s own library :
-	* Install MOSQUITTO :)
-	* Compile TeleInfod using the following command line :
+
+* Récupérez le code source `TeleInfod.c` et placez-le dans un répertoire temporaire ( `/tmp` fera d'ailleurs parfaitement l'affaire),
+* Si vous souhaitez utiliser la librairie **Mosquitto** :
+	* Installez Mosquitto :)
+	* Compilez TeleInfod comme suit :
 ```
     gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
 ```
-* If you want to use  PAHO library
-	* Install PAHO
-	* Compile TeleInfod using the following command line :
+* Si vous souhaitez utiliser la librairie PAHO :
+	* Installez PAHO
+	* Compilez TeleInfod comme suit :
 ```
     gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
 ```
 
 # Launch options :
-TeleInfod knows the following options :
-* *-d* : verbose output
-* *-f<file>* : loads <file> as configuration file
 
-# Configuration file :
+**TeleInfod** se lance en ligne de commande et reconnait les options suivantes  :
+* `-d` ou `-v` : est verbeux, affiche des messages d'information,
+* `-f<file>` : utilise <file> comme fichier de configuration. Par défaut, il recherche `/usr/local/etc/TeleInfod.conf`
 
-Without **–f** option, the configuration file is by default : “*/usr/local/etc/TeleInfod.conf*”
+# Contenu du fichier de configuration :
 
-The following general directives are known :
-* **Broker_Host=** where the Broker can be reached.
-Using Moquitto library, only the hostname has to be provided (as “`localhost`”, “`myhost.mydomain.tld`” ).<br>
-Using Paho, use a URL like tcp://<hostname>:port (as `tcp://localhost:1883`).
-* **Broker_Port=** the port to connect to (only when using the Mosquitto library)
-* **Sample_Delay=** Delay b/w 2 samples (in seconds, default delay = 30s).
-> [!CAUTION]
-> Due to 3.4.xx kernel instability on multiple open()/close() of ttyS, it is advised to set this parameter to **0** which keep ttyS open and send data as much as provided.
-* **Monitoring_Period=** (in seconds, introduced in v2.0). Daily between 2 samples of a subscribing monitoring tool to '*.../summary*' topics (see bellow).<br>
-If `unset` or `null`, actual values are sent as previously.<br>
-If set, maximum values read during the period are sent, and additional fields are added for counters
+Les directives générales sont reconnues :
+* **Broker_Host=** - le serveur hébergeant le broker MQTT. Avec la librairie Mosquitto, seul son nom doit être fourni (par exemple `localhost` ou encore `myhost.mydomain.tld`).<br>
+Avec la bibliothèque Paho, il faut fournir une URL `tcp://<hostname>:port` (comme `tcp://localhost:1883`).
+* **Broker_Port=** - le port de connexion du broker MQTT (seulement pour la bibliothèque Mosquitto)
 
-One or more sections have be defined as :
-
+Au moins une section doit être définie :
 ```
     *Production
     Port=/dev/ttyS2
     Topic=/TeleInfo/Production
 ```
 
-Where
-* The line starting with a star indicates a new section. The name after the star is for information only (useful only to know which section is faulty in case of error)
+Avec
+* La ligne commençant par une étoile ** * ** indique le début de la section. Suit son *nom* qui vous sera utile pour identifier les messages si vous avez plusieurs compteurs et donc plusieurs sections.
 * *Port=* path to the serial port to use (which has to be configured before launching TeleInfod
 * *Topic=* Root of the topic tree where to expose data
 
