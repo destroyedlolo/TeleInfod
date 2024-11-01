@@ -48,6 +48,7 @@ gcc -DUSE_PAHO TeleInfod.c -lpthread -lpaho-mqtt3c -Wall -o TeleInfod
  *							- remove c99 dependencies
  *		29/07/2023 - v3.1 LF - Publish date as well for standard frame
  *		15/08/2024 - v3.2 LF - Add some securities
+ *		01/11/2024 - v3.3 LF - PTEC is always published
  */
 
 #include <stdio.h>
@@ -557,7 +558,7 @@ void *process_historic(void *actx){
 				}
 			} else if((arg = striKWcmp(l,"PTEC"))){
 				arg = extr_arg(arg, 4);
-				if(strncmp(ctx->values.historic.PTEC, arg, 4)){
+/*				if(strncmp(ctx->values.historic.PTEC, arg, 4)){ */
 					memcpy(ctx->values.historic.PTEC, arg, 4);
 					sprintf(val, "%.4s", arg);
 					if(debug)
@@ -565,7 +566,7 @@ void *process_historic(void *actx){
 					sprintf(l, "%s/values/PTEC", ctx->topic);
 
 					papub( l, strlen(val), val, 1 );
-				}
+/*				} */
 			} else if((arg = striKWcmp(l,"ISOUSC"))){
 				int v = atoi(extr_arg(arg,2));
 				if(ctx->values.historic.ISOUSC != v){
