@@ -65,7 +65,9 @@ void *process_standard(void *actx){
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
 			bool cpfound = false;	/* Found a topic to be converted for producer */
 			bool ccfound = false;	/* Found a topic to be converted for consumer */
-			bool horodate = (bool) strstr(
+			bool round = false;		/* Value to be rounded */
+
+			bool horodate = (bool) strstr(	/* Include horodatage */
 				"SMAXSN,SMAXSN1,SMAXSN2,SMAXSN3,"
 				"SMAXSN-1,SMAXSN1-1,SMAXSN2-1,SMAXSN3-1,"
 				"SMAXIN,SMAXIN-1,"
@@ -82,9 +84,10 @@ void *process_standard(void *actx){
 				strcpy(topic + sz, buffer);
 			if(szcp){
 				cpfound = true;
-				if(!strcmp(buffer,"SINSTI"))
+				if(!strcmp(buffer,"SINSTI")){
 					strcpy(cptopic + szcp, "PAPP");
-				else if(!strcmp(buffer,"SINSTI"))
+					round = true;
+				} else if(!strcmp(buffer,"SINSTI"))
 					strcpy(cptopic + szcp, "IINST");
 				else if(!strcmp(buffer,"EAIT"))
 					strcpy(cptopic + szcp, "BASE");
@@ -95,9 +98,10 @@ void *process_standard(void *actx){
 			}
 			if(szcc){
 				ccfound = true;
-				if(!strcmp(buffer,"SINSTS"))
+				if(!strcmp(buffer,"SINSTS")){
 					strcpy(cctopic + szcc, "PAPP");
-				else if(!strcmp(buffer,"IRMS1"))
+					round = true;
+				} else if(!strcmp(buffer,"IRMS1"))
 					strcpy(cctopic + szcc, "IINST");
 /*
 Il faut sans doute jouer avec NGTF, LTARF et les index EASF01 et EASF02
@@ -128,10 +132,9 @@ A voir avec une vraie trame.
 					continue;
 			}
 
-			if(!raw){
-				unsigned int t = atoi(dt);
+			unsigned int t = atoi(dt);
+			if(!raw)
 				sprintf(dt, "%u", t);
-			}
 
 			if(sz){
 				if(debug){
@@ -147,6 +150,10 @@ A voir avec une vraie trame.
 				}
 			}
 
+			if(round){	/* Round the value for compatibility mode */
+				t -= t%10;
+				sprintf(dt, "%u", t);
+			}
 			if(cpfound){
 				if(debug)
 					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, dt);
