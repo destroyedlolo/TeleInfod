@@ -112,7 +112,7 @@ Champ | Standard | Topic converti
 
 Champ | Standard | Topic converti
 -----------|----------|-----
-*Puissance app. Instantanée injectée* | **EAST** | .../values/**PAPP**
+*Puissance app. Instantanée injectée* | **SINSTS** | .../values/**PAPP**
 *Courant efficace* | **IRMS1** | .../values/**IINST**
 
 ps : Les compteurs seront convertis ... lorsque mon compteur Linky de consommation aura basculé en mode standard.
