@@ -65,7 +65,10 @@ void *process_standard(void *actx){
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
 			bool cpfound = false;	/* Found a topic to be converted for producer */
 			bool ccfound = false;	/* Found a topic to be converted for consumer */
+
+#if 0
 			bool round = false;		/* Value to be rounded */
+#endif
 
 			bool horodate = (bool) strstr(	/* Include horodatage */
 				"SMAXSN,SMAXSN1,SMAXSN2,SMAXSN3,"
@@ -86,7 +89,7 @@ void *process_standard(void *actx){
 				cpfound = true;
 				if(!strcmp(buffer,"SINSTI")){
 					strcpy(cptopic + szcp, "PAPP");
-					round = true;
+/*					round = true;	*/
 				} else if(!strcmp(buffer,"SINSTI"))
 					strcpy(cptopic + szcp, "IINST");
 				else if(!strcmp(buffer,"EAIT"))
@@ -100,7 +103,7 @@ void *process_standard(void *actx){
 				ccfound = true;
 				if(!strcmp(buffer,"SINSTS")){
 					strcpy(cctopic + szcc, "PAPP");
-					round = true;
+/*					round = true;	*/
 				} else if(!strcmp(buffer,"IRMS1"))
 					strcpy(cctopic + szcc, "IINST");
 /*
@@ -150,10 +153,12 @@ A voir avec une vraie trame.
 				}
 			}
 
+#if 0
 			if(round){	/* Round the value for compatibility mode */
 				t -= t%10;
 				sprintf(dt, "%u", t);
 			}
+#endif
 			if(cpfound){
 				if(debug)
 					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cptopic, dt);
