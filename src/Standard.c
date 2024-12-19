@@ -91,19 +91,19 @@ void *process_standard(void *actx){
 			}
 			if(szcc){
 				ccfound = true;
-				if(!strcmp(buffer,"EAST"))
+				if(!strcmp(buffer,"SINSTS"))
 					strcpy(cctopic + szcc, "PAPP");
 				else if(!strcmp(buffer,"IRMS1"))
-					strcpy(cptopic + szcp, "IINST");
+					strcpy(cctopic + szcc, "IINST");
 /*
 Il faut sans doute jouer avec NGTF, LTARF et les index EASF01 et EASF02
 A voir avec une vraie trame.
 
 				else if(!strcmp(buffer,"????"))
-					strcpy(cptopic + szcp, "HHPHC");
-					strcpy(cptopic + szcp, "PTEC");
-					strcpy(cptopic + szcp, "HCHC");
-					strcpy(cptopic + szcp, "HCHP");
+					strcpy(cctopic + szcc, "HHPHC");
+					strcpy(cctopic + szcc, "PTEC");
+					strcpy(cctopic + szcc, "HCHC");
+					strcpy(cctopic + szcc, "HCHP");
 */
 				else
 					ccfound = false;
