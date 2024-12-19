@@ -74,6 +74,10 @@ void *process_standard(void *actx){
 				"DPM1,FPM1,DPM2,FPM2,DPM3,FPM3"
 			, buffer);
 
+			bool raw = (bool) strstr(	/* Non numeric values */
+				"ADSC,VTIC,DATE,NGTF,LTARF,STGE,MSG1,MSG2,PRM,RELAIS"
+			, buffer);
+
 			if(sz)	/* Full topic name */
 				strcpy(topic + sz, buffer);
 			if(szcp){
@@ -122,6 +126,11 @@ A voir avec une vraie trame.
 					break;	/* File is over */
 				if(!*dt)	/* Can't load the payload */
 					continue;
+			}
+
+			if(!raw){
+				unsigned int t = atoi(dt);
+				sprintf(dt, "%u", t);
 			}
 
 			if(sz){

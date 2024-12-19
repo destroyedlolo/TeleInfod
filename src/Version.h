@@ -45,7 +45,7 @@
 
 #ifndef VERSION
 
-#define VERSION "V4.00.01"
+#define VERSION "V4.00.02"
 #define COPYRIGHT "(c) L.Faillie 2015-24"
 
 #endif
