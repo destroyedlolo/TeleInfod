@@ -65,6 +65,7 @@ void *process_standard(void *actx){
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
 			bool cpfound = false;	/* Found a topic to be converted for producer */
 			bool ccfound = false;	/* Found a topic to be converted for consumer */
+			bool ptec = false;		/* We have to convert PTEC */
 
 #if 0
 			bool round = false;		/* Value to be rounded */
@@ -110,6 +111,10 @@ void *process_standard(void *actx){
 					strcpy(cctopic + szcc, "HCHP");
 				else if(!strcmp(buffer,"EASF02"))
 					strcpy(cctopic + szcc, "HCHC");
+				else if(!strcmp(buffer,"NTARF")){
+					strcpy(cctopic + szcc, "PTEC");
+					ptec = true;
+				}
 /*
 Il faut sans doute jouer avec NGTF, LTARF et les index EASF01 et EASF02
 A voir avec une vraie trame.
@@ -117,8 +122,6 @@ A voir avec une vraie trame.
 				else if(!strcmp(buffer,"????"))
 					strcpy(cctopic + szcc, "HHPHC");
 					strcpy(cctopic + szcc, "PTEC");
-					strcpy(cctopic + szcc, "HCHC");
-					strcpy(cctopic + szcc, "HCHP");
 */
 				else
 					ccfound = false;
@@ -142,6 +145,9 @@ A voir avec une vraie trame.
 			unsigned int t = atoi(dt);
 			if(!raw)
 				sprintf(dt, "%u", t);
+
+			if(ptec)
+				strcpy(dt, (t>1) ? "HP..":"HC..");
 
 			if(sz){
 				if(debug){
