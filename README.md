@@ -11,19 +11,14 @@
 
 # Installation :
 
-* Récupérez le code source `TeleInfod.c` et placez-le dans un répertoire temporaire ( `/tmp` fera d'ailleurs parfaitement l'affaire),
-* Si vous souhaitez utiliser la librairie **Mosquitto** :
-	* Installez Mosquitto :)
-	* Compilez TeleInfod comme suit :
-```
-    gcc -std=c99 -DUSE_MOSQUITTO -lpthread -lmosquitto -Wall TeleInfod.c -o TeleInfod
-```
-* Si vous souhaitez utiliser la librairie PAHO :
-	* Installez PAHO
-	* Compilez TeleInfod comme suit :
-```
-    gcc -std=c99 -DUSE_PAHO -lpthread -lpaho-mqtt3c -Wall TeleInfod.c -o TeleInfod
-```
+  1. installez les dépendances (**Mosquitto** ou **PAHO**).
+  1. Clone le repository de TéléInfod
+  1. Pour changer les options de compilations
+     1. installez [LFMakeMaker](https://github.com/destroyedlolo/LFMakeMaker)
+     1. personalisez `remake.sh`
+     1. executez `remake.sh` pour mettre à jour le Makefile.
+  1. `make`
+  1. déplacez l'executable `TeleInfod` quelque part dans votre PATH. Par exemple `/usr/local/sbin`.
 
 # Launch options :
 
@@ -71,14 +66,12 @@ Ce qui publiera :
 A ce jour, seul Linky la génère (mais doit avoir été configuré pour).
 
 ```
-    *Production
+    *MonLinky
     SPort=/dev/ttyS4
-    Topic=TeleInfo/Production
-    ConvCons=TeleInfo/HistConso
+    Topic=TeleInfo/Linky
     ConvProd=TeleInfo/HistProd
-    ConvProd=TeleInfo/Test/HistProduct
-    ConvCons=TeleInfo/Test/HistConso
-    Publish=DATE,NGTF,LTARF,EAST,EAIT,IRMS1,URMS1,PREF,PCOUP,SINSTS,SMAXSN,SMAXSN-1,SINSTI,SMAXIN,SMAXIN-1,CCASN,CCASN-1,CCAIN,CCAIN-1,UMOY1,MSG1,MSG2,RELAIS,NTARF,PPOINTE
+    ConvCons=TeleInfo/HistConso
+        Publish=DATE,NGTF,LTARF,EAST,EAIT,IRMS1,URMS1,PREF,PCOUP,SINSTS,SMAXSN,SMAXSN-1,SINSTI,SMAXIN,SMAXIN-1,CCASN,CCASN-1,CCAIN,CCAIN-1,UMOY1,MSG1,MSG2,RELAIS,NTARF,PPOINTE
 ```
 
 Avec :
@@ -114,8 +107,9 @@ Champ | Standard | Topic converti
 -----------|----------|-----
 *Puissance app. Instantanée injectée* | **SINSTS** | .../values/**PAPP**
 *Courant efficace* | **IRMS1** | .../values/**IINST**
-
-ps : Les compteurs seront convertis ... lorsque mon compteur Linky de consommation aura basculé en mode standard.
+*Compteur 1 (Heures Plaines)* | **EASF01** | .../values/**HCHP**
+*Compteur 2 (Heures Creuses)* | **EASF02** | .../values/**HCHC**
+*Heures Plaines / Heures Creuses* | **NTARF** | .../values/**PTEC**
 
 # Document de référence
 
