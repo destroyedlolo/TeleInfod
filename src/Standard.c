@@ -106,6 +106,10 @@ void *process_standard(void *actx){
 /*					round = true;	*/
 				} else if(!strcmp(buffer,"IRMS1"))
 					strcpy(cctopic + szcc, "IINST");
+				else if(!strcmp(buffer,"EASF01"))
+					strcpy(cctopic + szcc, "HCHP");
+				else if(!strcmp(buffer,"EASF02"))
+					strcpy(cctopic + szcc, "HCHC");
 /*
 Il faut sans doute jouer avec NGTF, LTARF et les index EASF01 et EASF02
 A voir avec une vraie trame.
