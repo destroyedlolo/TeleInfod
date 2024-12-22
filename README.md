@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > Téléinfo TIC seems only applicable in France. Consequently, this README is only in French.
 
-**TeleInfod** est un démon qui publie les données de votre compteur Enedis par l'intermédiaire de sa prise *Téléinformation* vers un broker **MQTT**. Il est compatible à la fois avec les compteurs **Linky** mais aussi avec les anciens compteurs numériques.
+**TeleInfod** est un démon qui publie les données de votre compteur Enedis par l'intermédiaire de sa prise *Téléinformation* vers un broker **MQTT**. Il est compatible à la fois avec les compteurs **Linky** en mode '*standard*' comme '*historique*' et donc compatible avec les anciens compteurs numériques.
 
 # Dépendances
 
