@@ -107,9 +107,9 @@ void *process_standard(void *actx){
 /*					round = true;	*/
 				} else if(!strcmp(buffer,"IRMS1"))
 					strcpy(cctopic + szcc, "IINST");
-				else if(!strcmp(buffer,"EASF01"))
-					strcpy(cctopic + szcc, "HCHP");
 				else if(!strcmp(buffer,"EASF02"))
+					strcpy(cctopic + szcc, "HCHP");
+				else if(!strcmp(buffer,"EASF01"))
 					strcpy(cctopic + szcc, "HCHC");
 				else if(!strcmp(buffer,"NTARF")){
 					strcpy(cctopic + szcc, "PTEC");
@@ -146,9 +146,6 @@ A voir avec une vraie trame.
 			if(!raw)
 				sprintf(dt, "%u", t);
 
-			if(ptec)
-				strcpy(dt, (t>1) ? "HP..":"HC..");
-
 			if(sz){
 				if(debug){
 					if(horodate)
@@ -175,6 +172,9 @@ A voir avec une vraie trame.
 				papub(cptopic, strlen(dt), dt, 0);
 			}
 			if(ccfound){
+				if(ptec)
+					strcpy(dt, (t>1) ? "HP..":"HC..");
+
 				if(debug)
 					printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, cctopic, dt);
 				papub(cctopic, strlen(dt), dt, 0);
