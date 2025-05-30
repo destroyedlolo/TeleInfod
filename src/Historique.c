@@ -45,12 +45,21 @@ void *process_historic(void *actx){
 		if(strstr(ctx->labels, buffer)){	/* Found in topic to publish */
 			strcpy(topic + sz, buffer);
 
+			bool raw = (bool) strstr(	/* Non numeric values */
+				"ADCO,OPTARIF,PEJP,PTEC,DEMAIN,HHPHC,MOTDETAT",
+			buffer);
+
 			if(!getPayload(fframe, buffer, 0x20, 16))
 				break;	/* File is over */
 	
 			if(!*buffer)	/* Can't load the payload */
 				continue;
-	
+
+			if(!raw){
+				unsigned int t = atoi(buffer);
+				sprintf(buffer, "%u", t);
+			}
+
 			if(debug)
 				printf("*d* [%s] Publishing '%s' : '%s'\n", ctx->name, topic, buffer);
 
