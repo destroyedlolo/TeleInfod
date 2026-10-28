@@ -66,36 +66,14 @@ Afin de simuler un raccordement monophasé sur un appareil nativement triphasé,
 
 | Étiquette Téléinfo / Source | Attribut Shelly Pro 3EM équivalent | Unité & Description |
 | --- | --- | --- |
-| **`SINSTS` - `SINSTI**` *(si `POWER_MODE=net`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active nette.<br>
-
-<br>• `> 0` : Soutirage du réseau (Consommation)
-
-<br>
-
-<br>• `< 0` : Injection sur le réseau (Surplus solaire)
-
- |
-| **`SINSTS`** *(si `POWER_MODE=import`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active soutirée uniquement.
-
- |
-| **`|SINSTS - SINSTI|`** | `a_aprt_power`, `total_aprt_power` | **VA** — Puissance apparente (assimilée à la valeur absolue de la puissance active).
-
- |
-| **`URMS1`** *(à défaut `UMOY1`, ou `VOLTAGE`)* | `a_voltage` | **Volts (V)** — Tension efficace réseau.
-
- |
-| **`IRMS1`** *(à défaut $\frac{\Vert{}P\Vert{}}{U}$)* | `a_current`, `total_current` | **Ampères (A)** — Intensité efficace sur la phase A.
-
- |
-| **`EAST`** | `EMData:0` $\rightarrow$ `a_total_act_energy`, `total_act` | **Wh** — Index d'énergie totale soutirée (Import).
-
- |
-| **`EAIT`** | `EMData:0` $\rightarrow$ `a_total_act_ret_energy`, `total_act_ret` | **Wh** — Index d'énergie totale injectée (Export / Surplus).
-
- |
-| *`NTARF`, `LTARF`, `EASF01`, `EASF02`, etc.* | *Ignorés* | Métadonnées tarifaires sans équivalent direct dans l'API Shelly.
-
- |
+| **`SINSTS` - `SINSTI**` *(si `POWER_MODE=net`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active nette (négative si injection sur le réseau (Surplus solaire))|
+| **`SINSTS`** *(si `POWER_MODE=import`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active soutirée uniquement.|
+| **`|SINSTS - SINSTI|`** | `a_aprt_power`, `total_aprt_power` | **VA** — Puissance apparente (assimilée à la valeur absolue de la puissance active).|
+| **`URMS1`** *(à défaut `UMOY1`, ou `VOLTAGE`)* | `a_voltage` | **Volts (V)** — Tension efficace réseau. |
+| **`IRMS1`** *(à défaut $\frac{\Vert{}P\Vert{}}{U}$)* | `a_current`, `total_current` | **Ampères (A)** — Intensité efficace sur la phase A.|
+| **`EAST`** | `EMData:0` $\rightarrow$ `a_total_act_energy`, `total_act` | **Wh** — Index d'énergie totale soutirée (Import).|
+| **`EAIT`** | `EMData:0` $\rightarrow$ `a_total_act_ret_energy`, `total_act_ret` | **Wh** — Index d'énergie totale injectée (Export / Surplus). |
+| *`NTARF`, `LTARF`, `EASF01`, `EASF02`, etc.* | *Ignorés* | Métadonnées tarifaires sans équivalent direct dans l'API Shelly. |
 
 ---
 
@@ -104,44 +82,25 @@ Afin de simuler un raccordement monophasé sur un appareil nativement triphasé,
 Pour compiler et exécuter le projet, votre système doit disposer des bibliothèques suivantes :
 
 * **Eclipse Paho MQTT C** (`libpaho-mqtt-as` / `libpaho-mqtt-dev`) — Version asynchrone sécurisée.
-
-
 * **`cpp-httplib`** (`>= 0.33` requise pour la prise en charge native des WebSockets).
-
-
 * **`nlohmann-json`** — Manipulation et sérialisation JSON.
-
-
 * **Avahi** (`avahi-daemon`, `avahi-utils`) — Publication mDNS et résolution de nom locale.
-
-
 
 ### Installation des paquets
 
 * **Sous Arch Linux :**
 ```bash
 sudo pacman -S paho-mqtt-c cpp-httplib nlohmann-json avahi
-
 ```
-
-
 * **Sous Debian / Ubuntu / Raspberry Pi OS :**
 ```bash
 sudo apt-get update
 sudo apt-get install libpaho-mqtt-dev nlohmann-json3-dev avahi-daemon avahi-utils build-essential
-
 ```
-
-
 (Si la version de `cpp-httplib` proposée par votre distribution est inférieure à 0.33, téléchargez le header compatible directement dans votre dossier de projet) :
-
-
 ```bash
 curl -LO https://raw.githubusercontent.com/yhirose/cpp-httplib/v0.63.0/httplib.h
-
 ```
-
-
 
 ---
 
@@ -162,48 +121,20 @@ Le binaire se configure intégralement au lancement via les variables d'environn
 
 | Variable | Valeur par défaut | Description |
 | --- | --- | --- |
-| `MQTT_URI` | `tcp://localhost:1883` | Adresse du broker MQTT (ex: `tcp://192.168.1.50:1883`).
-
- |
-| `MQTT_USER` | *(vide)* | Nom d'utilisateur MQTT (si authentification active).
-
- |
-| `MQTT_PASSWORD` | *(vide)* | Mot de passe MQTT (si authentification active).
-
- |
-| `TOPIC_PREFIX` | `TeleInfo/LinkyConsommation` | Arborescence racine MQTT des étiquettes téléinfo.
-
- |
-| `POWER_MODE` | `net` | `net` = calcul signé (`SINSTS - SINSTI`) ; `import` = `SINSTS` seul.
-
- |
-| `IFACE` | *(auto)* | Interface réseau à utiliser (`eth0`, `wlan0`...). Par défaut : 1ère IPv4 non-loopback.
-
- |
-| `SHELLY_MAC` | *(auto MAC interface)* | Adresse MAC (12 caractères hexadécimaux) pour forcer l'identifiant de l'appareil.
-
- |
-| `SHELLY_HOSTNAME` | `ShellyPro3EM-<MAC>` | Nom de l'hôte mDNS annoncé sur le réseau (`.local`).
-
- |
-| `HTTP_PORT` | `80` | Port d'écoute HTTP / WebSocket (imposé sur le port 80 par Hoymiles).
-
- |
-| `UDP_RPC_PORT` | `0` | Port UDP RPC (`0` = désactivé, passer à `1010` pour batterie Marstek).
-
- |
-| `VOLTAGE` | `230` | Tension par défaut si ni `URMS1` ni `UMOY1` ne sont reçus par MQTT.
-
- |
-| `MDNS` | `avahi` | `avahi` (crée les fichiers dans `/etc/avahi/services`) ou `none`.
-
- |
-| `VERBOSE` | `0` | Passer à `1` pour afficher toutes les requêtes/réponses dans la console.
-
- |
-| `TCP_NODELAY` | `0` | Passer à `1` pour désactiver l'algorithme de Nagle TCP.
-
- |
+| `MQTT_URI` | `tcp://localhost:1883` | Adresse du broker MQTT (ex: `tcp://192.168.1.50:1883`). |
+| `MQTT_USER` | *(vide)* | Nom d'utilisateur MQTT (si authentification active). |
+| `MQTT_PASSWORD` | *(vide)* | Mot de passe MQTT (si authentification active). |
+| `TOPIC_PREFIX` | `TeleInfo/LinkyConsommation` | Arborescence racine MQTT des étiquettes téléinfo. |
+| `POWER_MODE` | `net` | `net` = calcul signé (`SINSTS - SINSTI`) ; `import` = `SINSTS` seul. |
+| `IFACE` | *(auto)* | Interface réseau à utiliser (`eth0`, `wlan0`...). Par défaut : 1ère IPv4 non-loopback. |
+| `SHELLY_MAC` | *(auto MAC interface)* | Adresse MAC (12 caractères hexadécimaux) pour forcer l'identifiant de l'appareil. |
+| `SHELLY_HOSTNAME` | `ShellyPro3EM-<MAC>` | Nom de l'hôte mDNS annoncé sur le réseau (`.local`). |
+| `HTTP_PORT` | `80` | Port d'écoute HTTP / WebSocket (imposé sur le port 80 par Hoymiles). |
+| `UDP_RPC_PORT` | `0` | Port UDP RPC (`0` = désactivé, passer à `1010` pour batterie Marstek). |
+| `VOLTAGE` | `230` | Tension par défaut si ni `URMS1` ni `UMOY1` ne sont reçus par MQTT. |
+| `MDNS` | `avahi` | `avahi` (crée les fichiers dans `/etc/avahi/services`) ou `none`. |
+| `VERBOSE` | `0` | Passer à `1` pour afficher toutes les requêtes/réponses dans la console. |
+| `TCP_NODELAY` | `0` | Passer à `1` pour désactiver l'algorithme de Nagle TCP. |
 
 ---
 
@@ -215,7 +146,6 @@ Puisque le programme écoute sur le port privilégié 80, il nécessite les priv
 
 ```bash
 sudo TOPIC_PREFIX="TeleInfo/Production/values" ./shelly_pro3em
-
 ```
 
 ### Installation en service d'arrière-plan (`systemd`)
@@ -239,7 +169,6 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-
 ```
 
 Activez et démarrez ensuite le service :
