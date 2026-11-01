@@ -2,8 +2,10 @@
 
 Une passerelle C++ légère et haute performance permettant de simuler un compteur d'énergie **Shelly Pro 3EM** (Gen 2) à partir des données de téléinformation Linky publiées sur MQTT (par exemple via [`teleinfod`](https://github.com/destroyedlolo/TeleInfod)).
 
-Ce projet est spécialement conçu pour intégrer les données de consommation et d'injection Linky dans des systèmes fermés de gestion de batterie ou d'onduleurs réseau tels que **Hoymiles (S-Miles, batterie MS-A2)** ou **Marstek**.\
-\
+Ce projet est spécialement conçu pour intégrer les données de consommation et d'injection Linky dans des systèmes fermés de gestion de batterie ou d'onduleurs réseau tels que **Hoymiles (S-Miles, batterie MS-A2)** ou **Marstek**.
+
+![SMiles Home](ShellyProxy.jpg)
+
 Ce projet a été entièrement vibe-codé avec beaucoup d’efforts pour qu’il fonctionne enfin. Il n’y a donc strictement aucune garanti et, à date, je n’ai pas l’intention de passer plus de temps pour rendre son code plus civilisé : juste un pensement “rapide” pour compenser le manque d’ouverture de mon onduleur.
 
 ## 📋 Table des matières
@@ -66,11 +68,11 @@ Afin de simuler un raccordement monophasé sur un appareil nativement triphasé,
 
 | Étiquette Téléinfo / Source | Attribut Shelly Pro 3EM équivalent | Unité & Description |
 | --- | --- | --- |
-| **`SINSTS` - `SINSTI**` *(si `POWER_MODE=net`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active nette (négative si injection sur le réseau (Surplus solaire))|
-| **`SINSTS`** *(si `POWER_MODE=import`)* | `a_act_power`, `total_act_power` | **Watts (W)** — Puissance active soutirée uniquement.|
-| **`|SINSTS - SINSTI|`** | `a_aprt_power`, `total_aprt_power` | **VA** — Puissance apparente (assimilée à la valeur absolue de la puissance active).|
+| **`SINSTS`** - **`SINSTI`** *(si `POWER_MODE=net`)* | `a_act_power`, `total_act_power` | **VoltAmpere (VA)** — Puissance active nette (négative si injection sur le réseau (Surplus solaire))|
+| **`SINSTS`** *(si `POWER_MODE=import`)* | `a_act_power`, `total_act_power` | **VoltAmpere (VA)** — Puissance active soutirée uniquement.|
+| **ABS(`SINSTS - SINSTI`)** | `a_aprt_power`, `total_aprt_power` | **VA** — Puissance apparente (assimilée à la valeur absolue de la puissance active).|
 | **`URMS1`** *(à défaut `UMOY1`, ou `VOLTAGE`)* | `a_voltage` | **Volts (V)** — Tension efficace réseau. |
-| **`IRMS1`** *(à défaut $\frac{\Vert{}P\Vert{}}{U}$)* | `a_current`, `total_current` | **Ampères (A)** — Intensité efficace sur la phase A.|
+| **`IRMS1`** | `a_current`, `total_current` | **Ampères (A)** — Intensité efficace sur la phase A.|
 | **`EAST`** | `EMData:0` $\rightarrow$ `a_total_act_energy`, `total_act` | **Wh** — Index d'énergie totale soutirée (Import).|
 | **`EAIT`** | `EMData:0` $\rightarrow$ `a_total_act_ret_energy`, `total_act_ret` | **Wh** — Index d'énergie totale injectée (Export / Surplus). |
 | *`NTARF`, `LTARF`, `EASF01`, `EASF02`, etc.* | *Ignorés* | Métadonnées tarifaires sans équivalent direct dans l'API Shelly. |
